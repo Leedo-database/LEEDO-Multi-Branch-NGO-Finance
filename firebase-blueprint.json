@@ -1,0 +1,176 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "LEEDO staff member or administrator",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "staffId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["MANAGEMENT", "CENTRAL_ACCOUNTS", "BRANCH_REP"] },
+        "branchId": { "type": "string" },
+        "branchName": { "type": "string" },
+        "designation": { "type": "string" },
+        "phone": { "type": "string" }
+      },
+      "required": ["id", "staffId", "name", "email", "role", "designation"]
+    },
+    "branch": {
+      "title": "Branch",
+      "description": "LEEDO branch or field operational zone",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "address": { "type": "string" },
+        "contactPerson": { "type": "string" },
+        "contactStaffId": { "type": "string" },
+        "phone": { "type": "string" },
+        "currentCashFloat": { "type": "number" },
+        "bankBalance": { "type": "number" },
+        "totalAllocated": { "type": "number" },
+        "totalSpent": { "type": "number" },
+        "activeProjectsCount": { "type": "number" },
+        "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] }
+      },
+      "required": ["id", "name", "code", "status"]
+    },
+    "subBranch": {
+      "title": "SubBranch",
+      "description": "Sub-branch or unit under a primary LEEDO branch (e.g., SUS, shelter, vocational unit)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "branchId": { "type": "string" },
+        "branchName": { "type": "string" },
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "inChargeStaffId": { "type": "string" },
+        "inChargeName": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "branchId", "name", "code", "status"]
+    },
+    "project": {
+      "title": "Project",
+      "description": "Donor funded humanitarian project across branches",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "description": { "type": "string" },
+        "donorId": { "type": "string" },
+        "donorName": { "type": "string" },
+        "primaryCategory": { "type": "string" },
+        "totalBudget": { "type": "number" },
+        "spentBudget": { "type": "number" },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "status": { "type": "string", "enum": ["ACTIVE", "CLOSING_SOON", "CLOSED"] }
+      },
+      "required": ["id", "name", "code", "donorId", "totalBudget", "status"]
+    },
+    "voucher": {
+      "title": "Voucher",
+      "description": "Financial transaction voucher for expense, donation, or bank transfer",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "voucherNumber": { "type": "string" },
+        "type": { "type": "string" },
+        "title": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string" },
+        "branchId": { "type": "string" },
+        "branchName": { "type": "string" },
+        "subBranchId": { "type": "string" },
+        "subBranchName": { "type": "string" },
+        "projectId": { "type": "string" },
+        "projectName": { "type": "string" },
+        "fundSourceMethod": { "type": "string" },
+        "category": { "type": "string" },
+        "notes": { "type": "string" },
+        "status": { "type": "string", "enum": ["DRAFT", "SUBMITTED", "APPROVED", "REJECTED"] }
+      },
+      "required": ["id", "voucherNumber", "type", "amount", "branchId", "status"]
+    },
+    "fundRequest": {
+      "title": "FundRequest",
+      "description": "Branch cash requisition or fund request submitted to Central Accounts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "requestNumber": { "type": "string" },
+        "branchId": { "type": "string" },
+        "branchName": { "type": "string" },
+        "subBranchId": { "type": "string" },
+        "subBranchName": { "type": "string" },
+        "requestedByUserId": { "type": "string" },
+        "requestedByStaffId": { "type": "string" },
+        "requestedByName": { "type": "string" },
+        "amount": { "type": "number" },
+        "category": { "type": "string" },
+        "purpose": { "type": "string" },
+        "urgency": { "type": "string", "enum": ["NORMAL", "URGENT", "EMERGENCY"] },
+        "preferredPaymentMethod": { "type": "string" },
+        "status": { "type": "string", "enum": ["PENDING", "APPROVED", "REJECTED", "DISBURSED"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "requestNumber", "branchId", "requestedByStaffId", "amount", "status"]
+    },
+    "auditLog": {
+      "title": "AuditLog",
+      "description": "Immutable financial and administrative audit trail log",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "userId": { "type": "string" },
+        "staffId": { "type": "string" },
+        "userName": { "type": "string" },
+        "role": { "type": "string" },
+        "action": { "type": "string" },
+        "entityType": { "type": "string" },
+        "entityId": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "required": ["id", "timestamp", "staffId", "action", "description"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "LEEDO staff member accounts"
+    },
+    "/branches/{branchId}": {
+      "schema": "branch",
+      "description": "LEEDO operational branches"
+    },
+    "/subBranches/{subBranchId}": {
+      "schema": "subBranch",
+      "description": "Sub-branches and shelter/school units"
+    },
+    "/projects/{projectId}": {
+      "schema": "project",
+      "description": "Donor funded projects"
+    },
+    "/vouchers/{voucherId}": {
+      "schema": "voucher",
+      "description": "Expense, donation, and transfer vouchers"
+    },
+    "/fundRequests/{requestId}": {
+      "schema": "fundRequest",
+      "description": "Branch fund requisition requests"
+    },
+    "/auditLogs/{logId}": {
+      "schema": "auditLog",
+      "description": "System-wide financial audit trails"
+    }
+  }
+}

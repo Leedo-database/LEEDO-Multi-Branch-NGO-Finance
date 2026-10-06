@@ -1,0 +1,6 @@
+{
+  "name": "LEEDO Multi-Branch NGO Finance & Architecture Hub",
+  "description": "Multi-branch accounting, project budget allocation, voucher verification, and complete Android Studio enterprise architecture for LEEDO NGO.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

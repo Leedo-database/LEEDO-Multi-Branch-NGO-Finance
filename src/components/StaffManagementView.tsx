@@ -381,9 +381,9 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
                             type="button"
                             onClick={() => {
                               setResetModalStaff(user);
-                              setNewPasswordInput('leedo');
+                              setNewPasswordInput(user.staffId);
                             }}
-                            title="পাসওয়ার্ড ভুলে গেলে রিসেট করুন (Reset Password)"
+                            title="পাসওয়ার্ড রিসেট করুন (পাসওয়ার্ড হবে স্টাফ আইডি)"
                             className="p-1.5 text-amber-400 hover:text-amber-300 hover:bg-slate-800 rounded-lg border border-transparent hover:border-amber-700/50 transition-colors"
                           >
                             <KeyRound className="w-3.5 h-3.5" />
@@ -604,7 +604,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
             <form onSubmit={handleConfirmResetPassword} className="space-y-3 text-xs">
               <div>
                 <label className="block text-slate-300 font-semibold mb-1">
-                  নতুন পাসওয়ার্ড প্রদান করুন (New Password) *
+                  রিসেট পাসওয়ার্ড প্রদান করুন (পাসওয়ার্ড হবে স্টাফ আইডি) *
                 </label>
                 <input
                   type="text"
@@ -613,22 +613,25 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
                   onChange={e => setNewPasswordInput(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono font-bold focus:outline-none focus:border-red-500"
                 />
-                <div className="flex gap-2 mt-2">
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setNewPasswordInput(resetModalStaff.staffId)}
+                    className="px-2.5 py-1 bg-amber-950/80 text-amber-300 border border-amber-800 rounded-lg hover:bg-amber-900 font-bold"
+                  >
+                    ✓ স্টাফ আইডি "{resetModalStaff.staffId}" (ডিফল্ট EID)
+                  </button>
                   <button
                     type="button"
                     onClick={() => setNewPasswordInput('leedo')}
                     className="px-2.5 py-1 bg-slate-800 text-slate-300 rounded hover:bg-slate-700"
                   >
-                    ডিফল্ট "leedo"
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNewPasswordInput(`leedo${resetModalStaff.staffId}`)}
-                    className="px-2.5 py-1 bg-slate-800 text-slate-300 rounded hover:bg-slate-700"
-                  >
-                    "leedo{resetModalStaff.staffId}"
+                    "leedo"
                   </button>
                 </div>
+                <p className="text-[11px] text-amber-300/90 mt-2 bg-amber-950/30 p-2 rounded-lg border border-amber-900/40">
+                  ℹ️ কর্মী এই পাসওয়ার্ড (স্টাফ আইডি: {resetModalStaff.staffId}) দিয়ে লগইন করার পর সিস্টেম তাকে বাধ্যতামূলকভাবে নতুন ব্যক্তিগত পাসওয়ার্ড সেট করতে বলবে।
+                </p>
               </div>
 
               <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
@@ -643,7 +646,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
                   type="submit"
                   className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl shadow-lg"
                 >
-                  পাসওয়ার্ড রিসেট নিশ্চিত করুন
+                  পাসওয়ার্ড রিসেট সম্পন্ন করুন
                 </button>
               </div>
             </form>

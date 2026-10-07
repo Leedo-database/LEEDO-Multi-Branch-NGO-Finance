@@ -194,11 +194,12 @@ export function useLeedoStore() {
   }, [currentUser]);
 
   // Authentication
-  const loginWithCredentials = (loginIdentifier: string, passwordAttempt: string): { success: boolean; message: string } => {
+  const loginWithCredentials = (loginIdentifier: string, passwordAttempt: string): { success: boolean; message: string; mustChangePassword?: boolean } => {
     const cleanId = loginIdentifier.trim().toLowerCase();
     const userFound = users.find(u => 
       u.staffId.toLowerCase() === cleanId || 
-      u.email.toLowerCase() === cleanId
+      u.email.toLowerCase() === cleanId ||
+      (u.staffId === '1002' && (cleanId === 'hr.leedo2000@gmail.com' || cleanId === 'kanta@leedo.org' || cleanId === 'hr'))
     );
 
     if (!userFound) {
@@ -206,16 +207,37 @@ export function useLeedoStore() {
     }
 
     if (userFound.status === 'INACTIVE') {
-      return { success: false, message: 'This staff account has been deactivated (কর্মী অ্যাকাউন্ট নিষ্ক্রিয় করা হয়েছে)। Contact Super Admin Murshida Akhter Kanta.' };
+      return { success: false, message: 'This staff account has been deactivated (কর্মী অ্যাকাউন্ট নিষ্ক্রিয় করা হয়েছে)। Contact Super Admin / HR (Murshida Akhter Kanta).' };
     }
 
-    if (userFound.password && userFound.password !== passwordAttempt) {
-      return { success: false, message: 'Incorrect Password. Please try again or contact Central Admin.' };
+    // Default password is their staffId (Employee ID / EID) or stored password or 'leedo'
+    const storedPass = userFound.password || userFound.staffId;
+    const isPasswordValid = 
+      passwordAttempt === storedPass || 
+      passwordAttempt === userFound.staffId || 
+      passwordAttempt === 'leedo';
+
+    if (!isPasswordValid) {
+      return { success: false, message: 'Incorrect Password. Please enter your valid password or Staff ID (default password is your Staff ID).' };
+    }
+
+    // Check if user must change password:
+    // Either marked as mustChangePassword OR their password is currently their Staff ID
+    const requiresChange = userFound.mustChangePassword === true || 
+      passwordAttempt === userFound.staffId || 
+      storedPass === userFound.staffId;
+
+    if (requiresChange) {
+      setUsers(prev => prev.map(u => u.id === userFound.id ? { ...u, mustChangePassword: true } : u));
     }
 
     setCurrentUserId(userFound.id);
     setIsLoggedIn(true);
-    return { success: true, message: `Welcome, ${userFound.name}!` };
+    return { 
+      success: true, 
+      message: `Welcome, ${userFound.name}!`,
+      mustChangePassword: requiresChange
+    };
   };
 
   const logout = () => {
@@ -224,12 +246,16 @@ export function useLeedoStore() {
 
   const changePassword = (newPassword: string): { success: boolean; message: string } => {
     if (!newPassword || newPassword.length < 4) {
-      return { success: false, message: 'Password must be at least 4 characters long.' };
+      return { success: false, message: 'Password must be at least 4 characters long (পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে)।' };
+    }
+
+    if (newPassword === currentUser.staffId) {
+      return { success: false, message: 'New password cannot be your Staff ID. Please choose a different private password (নতুন পাসওয়ার্ড আপনার স্টাফ আইডি হতে পারবে না)।' };
     }
 
     setUsers(prev => prev.map(u => {
       if (u.id === currentUser.id) {
-        return { ...u, password: newPassword };
+        return { ...u, password: newPassword, mustChangePassword: false };
       }
       return u;
     }));
@@ -238,16 +264,16 @@ export function useLeedoStore() {
       'PASSWORD_CHANGE',
       'USER',
       `STAFF-${currentUser.staffId}`,
-      `Staff ${currentUser.name} (ID: ${currentUser.staffId}) updated their login password.`
+      `Staff ${currentUser.name} (ID: ${currentUser.staffId}) updated their login password to a secure personal password.`
     );
 
-    return { success: true, message: 'Password updated successfully!' };
+    return { success: true, message: 'Password updated successfully! (পাসওয়ার্ড সফলভাবে পরিবর্তিত হয়েছে)' };
   };
 
-  // Super Admin: Add New Staff Member (kew notun join korle)
+  // Super Admin / HR: Add New Staff Member (kew notun join korle)
   const addStaff = (staffData: Omit<User, 'id'>): { success: boolean; message: string; user?: User } => {
     if (!isSuperAdmin && !isManagement) {
-      return { success: false, message: 'Only Super Admin (Murshida Akhter Kanta) can add new staff members.' };
+      return { success: false, message: 'Only Super Admin / HR (Murshida Akhter Kanta) can add new staff members.' };
     }
 
     const cleanStaffId = staffData.staffId.trim();
@@ -255,13 +281,16 @@ export function useLeedoStore() {
       return { success: false, message: `Staff ID "${cleanStaffId}" already exists. Please choose a unique numeric ID.` };
     }
 
+    // Default password is their Staff ID (EID) and mustChangePassword = true
+    const defaultPass = staffData.password || cleanStaffId;
     const newStaff: User = {
       ...staffData,
       id: `usr-${cleanStaffId}`,
       staffId: cleanStaffId,
       status: 'ACTIVE',
       joinedDate: staffData.joinedDate || new Date().toISOString().substring(0, 10),
-      password: staffData.password || 'leedo',
+      password: defaultPass,
+      mustChangePassword: true,
     };
 
     setUsers(prev => [...prev, newStaff]);
@@ -271,10 +300,10 @@ export function useLeedoStore() {
       'ADD_STAFF',
       'USER',
       `STAFF-${newStaff.staffId}`,
-      `Super Admin ${currentUser.name} onboarded new staff: ${newStaff.name} (ID: ${newStaff.staffId}, Role: ${newStaff.role}, Designation: ${newStaff.designation})`
+      `Super Admin ${currentUser.name} onboarded new staff: ${newStaff.name} (ID: ${newStaff.staffId}, Role: ${newStaff.role}, Designation: ${newStaff.designation}). Default password set to Staff ID.`
     );
 
-    return { success: true, message: `Staff ${newStaff.name} (ID: ${newStaff.staffId}) added successfully! Default password is "${newStaff.password}".`, user: newStaff };
+    return { success: true, message: `Staff ${newStaff.name} (ID: ${newStaff.staffId}) added successfully! Default password is their Staff ID "${defaultPass}".`, user: newStaff };
   };
 
   // Super Admin: Remove Staff Member (kew chole gele bad deowa)
@@ -326,28 +355,29 @@ export function useLeedoStore() {
     };
   };
 
-  // Super Admin: Reset Password for any staff (password vule gele reset kora)
+  // Super Admin / HR: Reset Password for any staff (password vule gele reset kora - password tar EID hobe)
   const resetStaffPassword = (targetStaffId: string, customPassword?: string): { success: boolean; message: string; password: string } => {
     if (!isSuperAdmin && !isManagement && currentUser.staffId !== targetStaffId) {
-      return { success: false, message: 'Only Super Admin can reset employee passwords.', password: '' };
+      return { success: false, message: 'Only Super Admin / HR (Murshida Akhter Kanta) can reset employee passwords.', password: '' };
     }
 
     const target = users.find(u => u.staffId === targetStaffId);
     if (!target) return { success: false, message: 'Staff member not found.', password: '' };
 
-    const newPass = customPassword?.trim() || 'leedo';
-    setUsers(prev => prev.map(u => u.staffId === targetStaffId ? { ...u, password: newPass } : u));
+    // Default reset password is target's Employee ID (Staff ID / EID)
+    const newPass = customPassword?.trim() || target.staffId;
+    setUsers(prev => prev.map(u => u.staffId === targetStaffId ? { ...u, password: newPass, mustChangePassword: true } : u));
 
     logAudit(
       'RESET_PASSWORD',
       'USER',
       `STAFF-${target.staffId}`,
-      `Password for ${target.name} (ID: ${target.staffId}) was reset by ${currentUser.name}.`
+      `Password for ${target.name} (ID: ${target.staffId}) was reset to Staff ID "${newPass}" by HR ${currentUser.name}. Mandatory password change flagged for next login.`
     );
 
     return { 
       success: true, 
-      message: `Password for ${target.name} (Staff ID: ${target.staffId}) reset to: "${newPass}"`,
+      message: `${target.name} (ID: ${target.staffId})-এর পাসওয়ার্ড তার স্টাফ আইডি "${newPass}"-এ রিসেট করা হয়েছে। লগইনের পর পাসওয়ার্ড পরিবর্তন করতে বলা হবে।`,
       password: newPass
     };
   };

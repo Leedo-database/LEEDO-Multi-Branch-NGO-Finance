@@ -43,6 +43,12 @@ export default function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState<boolean>(false);
 
+  // Mandatory password change check right after login or HR reset
+  const isMandatoryPasswordChange = Boolean(
+    store.isLoggedIn && 
+    (store.currentUser.mustChangePassword || store.currentUser.password === store.currentUser.staffId)
+  );
+
   // Enforce role-based tab access whenever user changes
   useEffect(() => {
     if (store.isBranchRep) {
@@ -320,10 +326,12 @@ export default function App() {
       />
 
       <ChangePasswordModal
-        isOpen={isChangePasswordModalOpen}
+        isOpen={isChangePasswordModalOpen || isMandatoryPasswordChange}
         onClose={() => setIsChangePasswordModalOpen(false)}
         currentUser={store.currentUser}
         onChangePassword={store.changePassword}
+        isMandatory={isMandatoryPasswordChange}
+        language={store.language}
       />
 
       <PayrollModal

@@ -8,6 +8,7 @@ export interface User {
   name: string;
   email: string;
   password?: string; // Stored securely for authentication
+  mustChangePassword?: boolean; // Flag indicating the user must change their password after login
   role: UserRole;
   branchId?: string; // For BRANCH_REP
   branchName?: string;

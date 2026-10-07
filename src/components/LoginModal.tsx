@@ -18,12 +18,12 @@ const DEMO_ACCOUNTS = [
   {
     staffId: '1002',
     name: 'Murshida Akhter Kanta',
-    roleLabel: 'সুপার এডমিন (Super Admin)',
-    designation: 'Director - Admin & Finance',
-    tag: 'সর্বোচ্চ ক্ষমতা: পাসওয়ার্ড রিসেট, কর্মী যোগ ও বাদ দেওয়া',
+    roleLabel: 'সুপার এডমিন ও এইচআর (Super Admin & HR)',
+    designation: 'Director - Admin, HR & Finance',
+    tag: 'সর্বোচ্চ ক্ষমতা: পাসওয়ার্ড রিসেট (পাসওয়ার্ড = স্টাফ আইডি), কর্মী যোগ ও বাদ দেওয়া',
     border: 'border-purple-600/60 bg-purple-950/40 text-purple-200',
     btnBg: 'bg-purple-600 hover:bg-purple-500 text-white',
-    password: 'leedo',
+    password: '1002',
   },
   {
     staffId: '1001',
@@ -33,7 +33,7 @@ const DEMO_ACCOUNTS = [
     tag: 'চূড়ান্ত বাজেট অনুমোদন ও অডিট ওভারসাইট',
     border: 'border-red-600/60 bg-red-950/40 text-red-200',
     btnBg: 'bg-red-600 hover:bg-red-500 text-white',
-    password: 'leedo',
+    password: '1001',
   },
   {
     staffId: '1004',
@@ -43,7 +43,7 @@ const DEMO_ACCOUNTS = [
     tag: 'ভাউচার যাচাই, বিল অডিট ও তহবিল ছাড়',
     border: 'border-blue-600/60 bg-blue-950/40 text-blue-200',
     btnBg: 'bg-blue-600 hover:bg-blue-500 text-white',
-    password: 'leedo',
+    password: '1004',
   },
   {
     staffId: '1079',
@@ -53,7 +53,7 @@ const DEMO_ACCOUNTS = [
     tag: 'বিল ও ভাউচার পরীক্ষণ ও এন্ট্রি',
     border: 'border-cyan-600/60 bg-cyan-950/40 text-cyan-200',
     btnBg: 'bg-cyan-600 hover:bg-cyan-500 text-white',
-    password: 'leedo',
+    password: '1079',
   },
   {
     staffId: '1023',
@@ -63,7 +63,7 @@ const DEMO_ACCOUNTS = [
     tag: 'খরচ এন্ট্রি, দোকানের বিল আপলোড ও রিকুইজিশন',
     border: 'border-emerald-600/60 bg-emerald-950/40 text-emerald-200',
     btnBg: 'bg-emerald-600 hover:bg-emerald-500 text-white',
-    password: 'leedo',
+    password: '1023',
   },
   {
     staffId: '1028',
@@ -73,7 +73,7 @@ const DEMO_ACCOUNTS = [
     tag: 'কদমতলী সেন্টার খরচ ও পেটি ক্যাশ ব্যবস্থাপনা',
     border: 'border-emerald-600/60 bg-emerald-950/40 text-emerald-200',
     btnBg: 'bg-emerald-600 hover:bg-emerald-500 text-white',
-    password: 'leedo',
+    password: '1028',
   },
 ];
 
@@ -88,13 +88,21 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   if (!isOpen) return null;
 
   const [staffIdOrEmail, setStaffIdOrEmail] = useState('');
-  const [password, setPassword] = useState('leedo');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+    if (!staffIdOrEmail.trim()) {
+      setErrorMsg(language === 'bn' ? 'অনুগ্রহ করে স্টাফ আইডি বা ইমেইল লিখুন।' : 'Please enter your Staff ID or Email.');
+      return;
+    }
+    if (!password) {
+      setErrorMsg(language === 'bn' ? 'অনুগ্রহ করে পাসওয়ার্ড লিখুন (ডিফল্ট পাসওয়ার্ড আপনার স্টাফ আইডি)।' : 'Please enter password (default is your Staff ID).');
+      return;
+    }
     const res = onLogin(staffIdOrEmail, password);
     if (res.success) {
       if (onClose) onClose();
@@ -220,15 +228,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   <label className="text-slate-300 font-semibold">
                     {language === 'bn' ? 'পাসওয়ার্ড (Password)' : 'Account Password'} *
                   </label>
-                  <span className="text-[11px] text-emerald-400 font-mono">
-                    {language === 'bn' ? 'ডেমো পাসওয়ার্ড: leedo' : 'Demo Password: leedo'}
+                  <span className="text-[11px] text-amber-400 font-mono">
+                    {language === 'bn' ? 'ডিফল্ট পাসওয়ার্ড: আপনার স্টাফ আইডি' : 'Default: Your Staff ID'}
                   </span>
                 </div>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
-                    placeholder="পাসওয়ার্ড লিখুন"
+                    placeholder={language === 'bn' ? 'পাসওয়ার্ড লিখুন (যেমন: 1002, 1023)' : 'Enter password (e.g. 1002, 1023)'}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-red-500 font-mono"
@@ -252,14 +260,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               </button>
             </form>
 
-            <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] text-slate-400 space-y-1">
-              <div className="font-semibold text-slate-300 flex items-center gap-1.5">
+            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-amber-900/40 text-[11px] text-slate-300 space-y-1.5">
+              <div className="font-semibold text-amber-400 flex items-center gap-1.5">
                 <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-                <span>পাসওয়ার্ড সংক্রান্ত তথ্য:</span>
+                <span>পাসওয়ার্ড ও নিরাপত্তা নির্দেশিকা:</span>
               </div>
-              <p>
-                সকল ডেমো অ্যাকাউন্টের ডিফল্ট পাসওয়ার্ড হলো: <strong className="text-white font-mono bg-slate-800 px-1 py-0.5 rounded">leedo</strong>। 
-                পাসওয়ার্ড ভুলে গেলে সুপার এডমিন মুর্শিদা আক্তার কান্তা (ID: 1002) তাৎক্ষণিক রিসেট করতে পারবেন।
+              <p className="leading-relaxed text-slate-300">
+                • <strong>ডিফল্ট পাসওয়ার্ড:</strong> প্রতিটি কর্মীর প্রাথমিক পাসওয়ার্ড হলো তার <strong>স্টাফ আইডি (EID)</strong> (যেমন: ১০২৩-এর পাসওয়ার্ড ১০২৩)।<br />
+                • <strong>এইচআর রিসেট:</strong> পাসওয়ার্ড ভুলে গেলে এইচআর / সুপার এডমিন মুর্শিদা আক্তার কান্তা (ID: 1002) পাসওয়ার্ড রিসেট করতে পারবেন (রিসেট পাসওয়ার্ডও হবে স্টাফ আইডি)।<br />
+                • <strong>বাধ্যতামূলক পরিবর্তন:</strong> ডিফল্ট পাসওয়ার্ড দিয়ে লগইন করার সাথে সাথে নিজস্ব নতুন গোপন পাসওয়ার্ড পরিবর্তনের নির্দেশনা আসবে।
               </p>
             </div>
           </div>
@@ -278,8 +287,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     : 'Click any role below to test their respective dashboard and approval powers'}
                 </p>
               </div>
-              <span className="font-mono text-xs font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2.5 py-1 rounded-lg">
-                Password: leedo
+              <span className="font-mono text-xs font-bold text-amber-400 bg-amber-950/60 border border-amber-800/40 px-2.5 py-1 rounded-lg">
+                Password = Staff ID
               </span>
             </div>
 
@@ -295,7 +304,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         ID: {demo.staffId}
                       </span>
                       <span className="text-[10px] font-mono text-slate-300">
-                        Pass: <strong className="text-white">leedo</strong>
+                        Pass: <strong className="text-amber-300 font-bold">{demo.password}</strong>
                       </span>
                     </div>
 

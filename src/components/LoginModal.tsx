@@ -195,10 +195,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Lock className="w-4 h-4 text-red-500" />
-                <span>{language === 'bn' ? 'স্টাফ একাউন্ট লগইন' : 'Staff Login'}</span>
+                <span>{language === 'bn' ? 'কর্মীর লগইন (Staff Login with EID)' : 'Staff Login'}</span>
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                {language === 'bn' ? 'আপনার স্টাফ আইডি ও পাসওয়ার্ড দিয়ে প্রবেশ করুন' : 'Enter your numerical ID & password'}
+                {language === 'bn' ? 'আপনার স্টাফ আইডি (EID) ও পাসওয়ার্ড দিয়ে প্রবেশ করুন' : 'Enter your Employee ID (EID) & password'}
               </p>
             </div>
 
@@ -211,12 +211,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
               <div>
                 <label className="block text-slate-300 font-semibold mb-1">
-                  {language === 'bn' ? 'স্টাফ আইডি (Staff ID) অথবা ইমেইল' : 'Staff ID or Email'} *
+                  {language === 'bn' ? 'কর্মীর আইডি / EID (Employee ID)' : 'Employee ID (EID) or Email'} *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder={language === 'bn' ? 'যেমন: 1002 (সুপার এডমিন), 1004, 1023' : 'e.g. 1002, 1001, 1004'}
+                  placeholder={language === 'bn' ? 'আপনার স্টাফ আইডি (EID) দিন (যেমন: 1023, 1004, 1002)' : 'e.g. 1023, 1004, 1002'}
                   value={staffIdOrEmail}
                   onChange={e => setStaffIdOrEmail(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500 font-mono font-bold"
@@ -229,14 +229,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     {language === 'bn' ? 'পাসওয়ার্ড (Password)' : 'Account Password'} *
                   </label>
                   <span className="text-[11px] text-amber-400 font-mono">
-                    {language === 'bn' ? 'ডিফল্ট পাসওয়ার্ড: আপনার স্টাফ আইডি' : 'Default: Your Staff ID'}
+                    {language === 'bn' ? 'ডিফল্ট: আপনার EID' : 'Default: Your EID'}
                   </span>
                 </div>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
-                    placeholder={language === 'bn' ? 'পাসওয়ার্ড লিখুন (যেমন: 1002, 1023)' : 'Enter password (e.g. 1002, 1023)'}
+                    placeholder={language === 'bn' ? 'পাসওয়ার্ড লিখুন (ডিফল্ট: আপনার EID)' : 'Enter password (default: your EID)'}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-red-500 font-mono"

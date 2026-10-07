@@ -16,8 +16,8 @@ import {
 } from '../utils/voucherCodeGenerator';
 
 const STORAGE_KEYS = {
-  USERS: 'leedo_users_v4',
-  CURRENT_USER_ID: 'leedo_current_user_id_v4',
+  USERS: 'leedo_users_v5',
+  CURRENT_USER_ID: 'leedo_current_user_id_v5',
   BRANCHES: 'leedo_branches_v4',
   SUB_BRANCHES: 'leedo_sub_branches_v4',
   DONORS: 'leedo_donors_v4',
@@ -27,7 +27,7 @@ const STORAGE_KEYS = {
   NOTIFICATIONS: 'leedo_notifications_v4',
   AUDIT_LOGS: 'leedo_audit_logs_v4',
   PETTY_CASH: 'leedo_petty_cash_v4',
-  IS_LOGGED_IN: 'leedo_is_logged_in_v4',
+  IS_LOGGED_IN: 'leedo_is_logged_in_v5',
   LANGUAGE: 'leedo_language_v4',
 };
 
@@ -53,7 +53,7 @@ export function useLeedoStore() {
   const [users, setUsers] = useState<User[]>(() => getStored(STORAGE_KEYS.USERS, INITIAL_USERS));
   // Default to Habibur Rahman (Accountant, 1004) or Masud (1023)
   const [currentUserId, setCurrentUserId] = useState<string>(() => getStored(STORAGE_KEYS.CURRENT_USER_ID, 'usr-1004'));
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => getStored(STORAGE_KEYS.IS_LOGGED_IN, true));
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => getStored(STORAGE_KEYS.IS_LOGGED_IN, false));
   const [language, setLanguageState] = useState<Language>(() => getStored(STORAGE_KEYS.LANGUAGE, 'bn'));
   const [branches, setBranches] = useState<Branch[]>(() => getStored(STORAGE_KEYS.BRANCHES, INITIAL_BRANCHES));
   const [subBranches, setSubBranches] = useState<SubBranch[]>(() => getStored(STORAGE_KEYS.SUB_BRANCHES, INITIAL_SUB_BRANCHES));

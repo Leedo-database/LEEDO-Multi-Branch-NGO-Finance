@@ -12,6 +12,7 @@ interface AuditReportsViewProps {
   projects: Project[];
   auditLogs: AuditLog[];
   onSelectPrintVoucher: (voucher: TransactionVoucher) => void;
+  customLogoUrl?: string;
 }
 
 export const AuditReportsView: React.FC<AuditReportsViewProps> = ({
@@ -20,6 +21,7 @@ export const AuditReportsView: React.FC<AuditReportsViewProps> = ({
   projects,
   auditLogs,
   onSelectPrintVoucher,
+  customLogoUrl,
 }) => {
   const [startDate, setStartDate] = useState('2026-09-01');
   const [endDate, setEndDate] = useState('2026-09-30');
@@ -244,7 +246,7 @@ export const AuditReportsView: React.FC<AuditReportsViewProps> = ({
             {/* Statement Header with Official Logo */}
             <div className="flex items-center justify-between border-b-2 border-red-700 pb-5 mb-6">
               <div className="flex items-center gap-4">
-                <LeedoLogo size="lg" variant="stacked" />
+                <LeedoLogo size="lg" variant="stacked" customLogoUrl={customLogoUrl} />
                 <div className="text-left">
                   <h2 className="text-2xl font-black text-red-600 tracking-tight leading-none">LEEDO</h2>
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-800 mt-1">

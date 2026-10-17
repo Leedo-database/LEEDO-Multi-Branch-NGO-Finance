@@ -318,6 +318,7 @@ export interface AuditLog {
   action: 
     | 'CREATE' 
     | 'UPDATE' 
+    | 'DELETE'
     | 'APPROVE' 
     | 'REJECT' 
     | 'REALLOCATE' 
@@ -353,4 +354,15 @@ export interface PettyCashRecord {
   closingBalance: number;
   reconciledBy: string;
   notes: string;
+}
+
+export interface OrganizationSettings {
+  logoUrl?: string; // Custom uploaded logo (Base64 data URI or public image URL)
+  orgNameEn?: string;
+  orgNameBn?: string;
+  regNumber?: string;
+  subTitleEn?: string;
+  subTitleBn?: string;
+  updatedAt?: string;
+  updatedBy?: string;
 }

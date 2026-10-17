@@ -81,9 +81,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </button>
           <button
             onClick={onOpenNewVoucher}
-            className="px-3.5 py-1.5 text-xs font-bold text-white bg-red-600 hover:bg-red-500 rounded-lg shadow-sm transition-all whitespace-nowrap"
+            className="px-3.5 py-1.5 text-xs font-bold text-white bg-red-600 hover:bg-red-500 rounded-lg shadow-sm transition-all whitespace-nowrap cursor-pointer"
           >
-            + Create Voucher
+            + New Voucher (নতুন ভাউচার)
           </button>
         </div>
       </div>

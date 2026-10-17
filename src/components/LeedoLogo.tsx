@@ -5,6 +5,7 @@ interface LeedoLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   variant?: 'stacked' | 'horizontal' | 'icon-only';
   inverted?: boolean;
+  customLogoUrl?: string;
 }
 
 export const LeedoLogo: React.FC<LeedoLogoProps> = ({
@@ -12,15 +13,39 @@ export const LeedoLogo: React.FC<LeedoLogoProps> = ({
   size = 'md',
   variant = 'horizontal',
   inverted = false,
+  customLogoUrl,
 }) => {
   const primaryColor = inverted ? '#FFFFFF' : '#E52229'; // Official LEEDO Red
 
   const dimensions = {
-    sm: { icon: 'w-7 h-9', text: 'text-base', spacing: 'gap-2' },
-    md: { icon: 'w-9 h-12', text: 'text-xl', spacing: 'gap-2.5' },
-    lg: { icon: 'w-12 h-16', text: 'text-2xl', spacing: 'gap-3' },
-    xl: { icon: 'w-16 h-22', text: 'text-4xl', spacing: 'gap-4' },
+    sm: { icon: 'w-7 h-9', img: 'h-8 max-w-[120px] object-contain', text: 'text-base', spacing: 'gap-2' },
+    md: { icon: 'w-9 h-12', img: 'h-10 max-w-[150px] object-contain', text: 'text-xl', spacing: 'gap-2.5' },
+    lg: { icon: 'w-12 h-16', img: 'h-14 max-w-[180px] object-contain', text: 'text-2xl', spacing: 'gap-3' },
+    xl: { icon: 'w-16 h-22', img: 'h-20 max-w-[240px] object-contain', text: 'text-4xl', spacing: 'gap-4' },
   }[size];
+
+  // If a custom logo has been uploaded by HR & Kanta, display that!
+  if (customLogoUrl) {
+    if (variant === 'icon-only') {
+      return (
+        <div className={`inline-flex items-center justify-center ${className}`}>
+          <img src={customLogoUrl} alt="LEEDO Logo" className={dimensions.img} />
+        </div>
+      );
+    }
+    if (variant === 'stacked') {
+      return (
+        <div className={`flex flex-col items-center justify-center text-center ${className}`}>
+          <img src={customLogoUrl} alt="LEEDO Logo" className={dimensions.img} />
+        </div>
+      );
+    }
+    return (
+      <div className={`inline-flex items-center ${dimensions.spacing} ${className}`}>
+        <img src={customLogoUrl} alt="LEEDO Logo" className={dimensions.img} />
+      </div>
+    );
+  }
 
   // SVG representation of the iconic LEEDO Two Red Joyful Running Children
   const IconSvg = (

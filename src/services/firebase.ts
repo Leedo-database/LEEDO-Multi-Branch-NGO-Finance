@@ -3,9 +3,11 @@ import { getAuth } from 'firebase/auth';
 import { 
   getFirestore, 
   doc, 
+  getDoc,
   getDocFromServer, 
   collection, 
   setDoc, 
+  deleteDoc,
   onSnapshot 
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
@@ -91,4 +93,62 @@ export async function syncDocumentToFirestore(collectionName: string, docId: str
     handleFirestoreError(err, OperationType.WRITE, cleanPath);
     return false;
   }
+}
+
+export async function deleteDocumentFromFirestore(collectionName: string, docId: string) {
+  const cleanPath = `${collectionName}/${docId}`;
+  try {
+    await deleteDoc(doc(db, collectionName, docId));
+    return true;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, cleanPath);
+    return false;
+  }
+}
+
+export function subscribeToCollection<T>(
+  collectionName: string, 
+  onData: (items: T[]) => void, 
+  onError?: (err: unknown) => void
+): () => void {
+  const colRef = collection(db, collectionName);
+  const unsubscribe = onSnapshot(
+    colRef,
+    (snapshot) => {
+      const items: T[] = [];
+      snapshot.forEach((d) => {
+        items.push(d.data() as T);
+      });
+      onData(items);
+    },
+    (error) => {
+      handleFirestoreError(error, OperationType.LIST, collectionName);
+      if (onError) onError(error);
+    }
+  );
+  return unsubscribe;
+}
+
+export function subscribeToDocument<T>(
+  collectionName: string,
+  docId: string,
+  onData: (item: T | null) => void,
+  onError?: (err: unknown) => void
+): () => void {
+  const docRef = doc(db, collectionName, docId);
+  const unsubscribe = onSnapshot(
+    docRef,
+    (snapshot) => {
+      if (snapshot.exists()) {
+        onData(snapshot.data() as T);
+      } else {
+        onData(null);
+      }
+    },
+    (error) => {
+      handleFirestoreError(error, OperationType.GET, `${collectionName}/${docId}`);
+      if (onError) onError(error);
+    }
+  );
+  return unsubscribe;
 }

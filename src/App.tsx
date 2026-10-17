@@ -19,6 +19,7 @@ import { VoucherModal } from './components/VoucherModal';
 import { PrintableVoucherModal } from './components/PrintableVoucherModal';
 import { LoginModal } from './components/LoginModal';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
+import { ChangeLogoModal } from './components/ChangeLogoModal';
 import { StaffManagementView } from './components/StaffManagementView';
 import { PayrollModal } from './components/PayrollModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
@@ -42,6 +43,7 @@ export default function App() {
   const [selectedPrintVoucher, setSelectedPrintVoucher] = useState<TransactionVoucher | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState<boolean>(false);
+  const [isChangeLogoOpen, setIsChangeLogoOpen] = useState<boolean>(false);
 
   // Mandatory password change check right after login or HR reset
   const isMandatoryPasswordChange = Boolean(
@@ -74,6 +76,7 @@ export default function App() {
         onLogin={store.loginWithCredentials}
         language={store.language}
         onLanguageChange={store.setLanguage}
+        customLogoUrl={store.customLogoUrl}
       />
     );
   }
@@ -104,6 +107,7 @@ export default function App() {
         pendingVouchersCount={pendingVouchersCount}
         isMobileOpen={isMobileMenuOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
+        customLogoUrl={store.customLogoUrl}
       />
 
       {/* 2. Main Content Area with Top Header & Workspace */}
@@ -125,6 +129,8 @@ export default function App() {
           onMarkAllNotificationsRead={store.markAllNotificationsAsRead}
           onNavigateTab={setCurrentTab}
           onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          customLogoUrl={store.customLogoUrl}
+          onOpenChangeLogo={() => setIsChangeLogoOpen(true)}
         />
 
         {/* Viewport Content */}
@@ -152,6 +158,9 @@ export default function App() {
               onRemoveStaff={store.removeStaff}
               onToggleStaffStatus={store.toggleStaffStatus}
               onResetStaffPassword={store.resetStaffPassword}
+              onUpdateStaff={store.updateStaff}
+              onTransferStaff={store.transferStaff}
+              onOpenChangeLogo={() => setIsChangeLogoOpen(true)}
               onOpenPayrollModal={() => setIsPayrollModalOpen(true)}
               language={store.language}
             />
@@ -174,6 +183,8 @@ export default function App() {
               onApproveByManagement={store.approveFundRequestByManagement}
               onReject={store.rejectFundRequest}
               onDisburse={store.disburseFundRequest}
+              onEditFundRequest={store.editFundRequest}
+              onDeleteFundRequest={store.deleteFundRequest}
             />
           )}
 
@@ -200,6 +211,8 @@ export default function App() {
               onOpenNewVoucher={() => setIsVoucherModalOpen(true)}
               onSelectPrintVoucher={setSelectedPrintVoucher}
               onOpenPayroll={() => setIsPayrollModalOpen(true)}
+              onEditVoucher={store.editVoucher}
+              onDeleteVoucher={store.deleteVoucher}
             />
           )}
 
@@ -214,6 +227,8 @@ export default function App() {
               onReallocateBudget={store.reallocateProjectBudget}
               onCloseProject={store.closeProject}
               onAddBranch={store.addBranch}
+              onEditProject={store.editProject}
+              onDeleteProject={store.deleteProject}
             />
           )}
 
@@ -244,6 +259,7 @@ export default function App() {
               projects={store.visibleProjects}
               auditLogs={store.auditLogs}
               onSelectPrintVoucher={setSelectedPrintVoucher}
+              customLogoUrl={store.customLogoUrl}
             />
           )}
 
@@ -315,6 +331,7 @@ export default function App() {
         voucher={selectedPrintVoucher}
         isOpen={Boolean(selectedPrintVoucher)}
         onClose={() => setSelectedPrintVoucher(null)}
+        customLogoUrl={store.customLogoUrl}
       />
 
       <LoginModal
@@ -323,6 +340,7 @@ export default function App() {
         users={store.users}
         onLogin={store.loginWithCredentials}
         language={store.language}
+        customLogoUrl={store.customLogoUrl}
       />
 
       <ChangePasswordModal
@@ -339,6 +357,15 @@ export default function App() {
         onClose={() => setIsPayrollModalOpen(false)}
         users={store.users}
         onDisburse={store.disbursePayroll}
+        language={store.language}
+      />
+
+      <ChangeLogoModal
+        isOpen={isChangeLogoOpen}
+        onClose={() => setIsChangeLogoOpen(false)}
+        currentLogoUrl={store.customLogoUrl}
+        onSaveLogo={store.updateLogo}
+        onResetLogo={store.resetLogo}
         language={store.language}
       />
     </div>

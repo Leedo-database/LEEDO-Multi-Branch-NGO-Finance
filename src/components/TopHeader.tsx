@@ -4,7 +4,7 @@ import { getTranslation } from '../services/i18n';
 import { LeedoLogo } from './LeedoLogo';
 import { 
   Plus, Bell, Globe, Cloud, KeyRound, LogOut, 
-  Send, FileText, ChevronDown, Check, CheckCircle2, Shield, Menu 
+  Send, FileText, ChevronDown, Check, CheckCircle2, Shield, Menu, Camera 
 } from 'lucide-react';
 
 interface TopHeaderProps {
@@ -23,6 +23,8 @@ interface TopHeaderProps {
   onMarkAllNotificationsRead: () => void;
   onNavigateTab: (tab: string) => void;
   onToggleMobileMenu?: () => void;
+  customLogoUrl?: string;
+  onOpenChangeLogo?: () => void;
 }
 
 export const TopHeader: React.FC<TopHeaderProps> = ({
@@ -41,6 +43,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   onMarkAllNotificationsRead,
   onNavigateTab,
   onToggleMobileMenu,
+  customLogoUrl,
+  onOpenChangeLogo,
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -78,7 +82,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
 
         <div className="flex items-center gap-2 min-w-0">
           <div className="md:hidden shrink-0">
-            <LeedoLogo size="sm" variant="icon-only" />
+            <LeedoLogo size="sm" variant="icon-only" customLogoUrl={customLogoUrl} />
           </div>
           <div className="min-w-0 truncate">
             <h1 className="text-sm sm:text-lg font-bold text-white flex items-center flex-wrap gap-1.5 leading-tight truncate">
@@ -237,6 +241,19 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
 
               {/* Action Buttons */}
               <div className="px-2 space-y-1">
+                {(currentUser.role === 'SUPER_ADMIN' || currentUser.staffId === '1002') && onOpenChangeLogo && (
+                  <button
+                    onClick={() => {
+                      onOpenChangeLogo();
+                      setShowUserMenu(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-purple-300 hover:bg-purple-950/40 transition-colors cursor-pointer"
+                  >
+                    <Camera className="w-3.5 h-3.5 text-purple-400" />
+                    <span>{language === 'bn' ? 'সংস্থার লোগো পরিবর্তন' : 'Change Org Logo'}</span>
+                  </button>
+                )}
+
                 <button
                   onClick={() => {
                     onOpenChangePassword();

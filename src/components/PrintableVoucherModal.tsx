@@ -7,12 +7,14 @@ interface PrintableVoucherModalProps {
   voucher: TransactionVoucher | null;
   isOpen: boolean;
   onClose: () => void;
+  customLogoUrl?: string;
 }
 
 export const PrintableVoucherModal: React.FC<PrintableVoucherModalProps> = ({
   voucher,
   isOpen,
   onClose,
+  customLogoUrl,
 }) => {
   if (!isOpen || !voucher) return null;
 
@@ -81,7 +83,7 @@ export const PrintableVoucherModal: React.FC<PrintableVoucherModalProps> = ({
               {/* Header with Official Logo */}
               <div className="flex items-start justify-between border-b-2 border-red-700 pb-5 mb-6">
                 <div className="flex items-start gap-4">
-                  <LeedoLogo size="lg" variant="stacked" />
+                  <LeedoLogo size="lg" variant="stacked" customLogoUrl={customLogoUrl} />
                   <div>
                     <h1 className="text-2xl font-black text-red-600 tracking-tight leading-none mt-1">LEEDO</h1>
                     <p className="text-xs font-bold uppercase tracking-wider text-slate-800 mt-1">
@@ -398,7 +400,7 @@ export const PrintableVoucherModal: React.FC<PrintableVoucherModalProps> = ({
             /* 80MM THERMAL RECEIPT FORMAT */
             <div className="w-[340px] bg-white text-slate-950 p-6 rounded-none shadow-2xl font-mono text-xs border border-slate-300 printable-area">
               <div className="text-center border-b border-dashed border-slate-400 pb-3 mb-3">
-                <LeedoLogo size="sm" variant="stacked" />
+                <LeedoLogo size="sm" variant="stacked" customLogoUrl={customLogoUrl} />
                 <h2 className="text-base font-black tracking-tight text-slate-950 mt-1">LEEDO NGO</h2>
                 <p className="text-[10px] text-slate-600">Local Education & Economic Dev. Org</p>
                 <p className="text-[10px] text-slate-500">Dhaka, Bangladesh | Reg # DHA-09281</p>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Project, Branch, Donor, User, ProjectBranchAllocation } from '../types';
 import { 
   FolderPlus, Edit3, CheckCircle, AlertCircle, 
-  Building, Calendar, DollarSign, Plus, X 
+  Building, Calendar, DollarSign, Plus, X, Trash2 
 } from 'lucide-react';
 
 interface ProjectBudgetsViewProps {
@@ -14,6 +14,8 @@ interface ProjectBudgetsViewProps {
   onReallocateBudget: (projectId: string, allocations: ProjectBranchAllocation[], totalBudget: number, notes: string) => void;
   onCloseProject: (projectId: string, notes: string) => void;
   onAddBranch: (branchData: Omit<Branch, 'id' | 'totalSpent' | 'activeProjectsCount' | 'currentCashFloat'> & { initialCashFloat: number }) => void;
+  onEditProject?: (projectId: string, updatedData: Partial<Project>) => { success: boolean; message: string };
+  onDeleteProject?: (projectId: string) => { success: boolean; message: string };
 }
 
 export const ProjectBudgetsView: React.FC<ProjectBudgetsViewProps> = ({
@@ -25,8 +27,11 @@ export const ProjectBudgetsView: React.FC<ProjectBudgetsViewProps> = ({
   onReallocateBudget,
   onCloseProject,
   onAddBranch,
+  onEditProject,
+  onDeleteProject,
 }) => {
-  const isAccountsOrMgmt = currentUser.role === 'CENTRAL_ACCOUNTS' || currentUser.role === 'MANAGEMENT';
+  const isSuperAdminOrKanta = currentUser.role === 'SUPER_ADMIN' || currentUser.staffId === '1002';
+  const isAccountsOrMgmt = currentUser.role === 'CENTRAL_ACCOUNTS' || currentUser.role === 'MANAGEMENT' || isSuperAdminOrKanta;
 
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [isAddBranchModalOpen, setIsAddBranchModalOpen] = useState(false);
@@ -76,6 +81,52 @@ export const ProjectBudgetsView: React.FC<ProjectBudgetsViewProps> = ({
     onCloseProject(closingProject.id, reconciliationNotes);
     setClosingProject(null);
     setReconciliationNotes('');
+  };
+
+  // Edit Project State & Handlers
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editProjName, setEditProjName] = useState('');
+  const [editProjDesc, setEditProjDesc] = useState('');
+  const [editProjDonorId, setEditProjDonorId] = useState('');
+  const [editProjCategory, setEditProjCategory] = useState<Project['primaryCategory']>('FOOD_SHELTER');
+  const [editProjStartDate, setEditProjStartDate] = useState('');
+  const [editProjEndDate, setEditProjEndDate] = useState('');
+  const [deleteConfirmProject, setDeleteConfirmProject] = useState<Project | null>(null);
+
+  const openEditProjectModal = (project: Project) => {
+    setEditingProject(project);
+    setEditProjName(project.name);
+    setEditProjDesc(project.description);
+    setEditProjDonorId(project.donorId);
+    setEditProjCategory(project.primaryCategory);
+    setEditProjStartDate(project.startDate);
+    setEditProjEndDate(project.endDate);
+  };
+
+  const handleSaveEditProjectSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProject) return;
+    const donor = donors.find(d => d.id === editProjDonorId);
+    if (onEditProject) {
+      onEditProject(editingProject.id, {
+        name: editProjName.trim(),
+        description: editProjDesc.trim(),
+        donorId: editProjDonorId,
+        donorName: donor?.name || editingProject.donorName,
+        primaryCategory: editProjCategory,
+        startDate: editProjStartDate,
+        endDate: editProjEndDate,
+      });
+    }
+    setEditingProject(null);
+  };
+
+  const handleConfirmDeleteProject = () => {
+    if (!deleteConfirmProject) return;
+    if (onDeleteProject) {
+      onDeleteProject(deleteConfirmProject.id);
+    }
+    setDeleteConfirmProject(null);
   };
 
   const handleCreateProjectSubmit = (e: React.FormEvent) => {
@@ -283,21 +334,42 @@ export const ProjectBudgetsView: React.FC<ProjectBudgetsViewProps> = ({
 
               {/* Action Buttons */}
               {isAccountsOrMgmt && !isClosed && (
-                <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+                <div className="mt-6 pt-4 border-t border-slate-800 flex flex-wrap items-center justify-end gap-2 sm:gap-3">
                   <button
-                    onClick={() => openReallocateModal(project)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+                    type="button"
+                    onClick={() => openEditProjectModal(project)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-sky-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                    title="প্রকল্পের বিবরণ বা ভুল তথ্য সংশোধন করুন (Edit Project)"
                   >
-                    <Edit3 className="w-3.5 h-3.5 text-red-400" />
-                    <span>Re-allocate Budgets</span>
+                    <Edit3 className="w-3.5 h-3.5 text-sky-400" />
+                    <span>Edit Info</span>
                   </button>
                   <button
+                    type="button"
+                    onClick={() => openReallocateModal(project)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <DollarSign className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Re-allocate</span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setClosingProject(project)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-300 hover:text-white bg-red-950/50 hover:bg-red-900 border border-red-800/80 rounded-lg transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-300 hover:text-white bg-red-950/50 hover:bg-red-900 border border-red-800/80 rounded-lg transition-colors cursor-pointer"
                   >
                     <CheckCircle className="w-3.5 h-3.5" />
-                    <span>Close Project</span>
+                    <span>Close</span>
                   </button>
+                  {isSuperAdminOrKanta && (
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirmProject(project)}
+                      className="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-950/60 rounded-lg transition-colors cursor-pointer"
+                      title="প্রকল্প মুছে ফেলুন (Delete Project)"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -681,6 +753,153 @@ export const ProjectBudgetsView: React.FC<ProjectBudgetsViewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT PROJECT MODAL */}
+      {editingProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 max-w-lg w-full rounded-2xl p-6 space-y-4 my-6">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-white">প্রকল্পের তথ্য সংশোধন (Edit Project)</h3>
+                <p className="text-xs text-slate-400">{editingProject.code} · {editingProject.name}</p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setEditingProject(null)} 
+                className="text-slate-400 hover:text-white cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditProjectSubmit} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">প্রকল্পের পূর্ণ নাম (Project Name) *</label>
+                <input
+                  type="text"
+                  required
+                  value={editProjName}
+                  onChange={e => setEditProjName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white font-medium focus:outline-none focus:border-red-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">দাতা সংস্থা (Funding Donor) *</label>
+                  <select
+                    value={editProjDonorId}
+                    onChange={e => setEditProjDonorId(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 cursor-pointer"
+                  >
+                    {donors.map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">ক্যাটাগরি (Primary Category) *</label>
+                  <select
+                    value={editProjCategory}
+                    onChange={e => setEditProjCategory(e.target.value as Project['primaryCategory'])}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 cursor-pointer"
+                  >
+                    <option value="FOOD_SHELTER">Food, Shelter & Nutrition</option>
+                    <option value="STREET_OUTREACH">Street School & Outreach</option>
+                    <option value="TRANSIT_SHELTER">Transit Home & Reintegration</option>
+                    <option value="EDUCATION_SUS">SUS Schooling & Child Education</option>
+                    <option value="EMERGENCY_HEALTH">Emergency Child Healthcare</option>
+                    <option value="CENTRAL_CORE">Central Admin Core</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">শুরুর তারিখ (Start Date)</label>
+                  <input
+                    type="date"
+                    value={editProjStartDate}
+                    onChange={e => setEditProjStartDate(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-mono focus:outline-none focus:border-red-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">মেয়াদ শেষ (End Date)</label>
+                  <input
+                    type="date"
+                    value={editProjEndDate}
+                    onChange={e => setEditProjEndDate(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white font-mono focus:outline-none focus:border-red-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">বিবরণ ও উদ্দেশ্য (Description)</label>
+                <textarea
+                  rows={3}
+                  value={editProjDesc}
+                  onChange={e => setEditProjDesc(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingProject(null)}
+                  className="px-4 py-2 text-slate-400 hover:text-white cursor-pointer"
+                >
+                  বাতিল (Cancel)
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl shadow-lg shadow-red-950/60 cursor-pointer"
+                >
+                  তথ্য সংরক্ষণ করুন (Save Project)
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRM DELETE PROJECT MODAL */}
+      {deleteConfirmProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+          <div className="bg-slate-900 border border-rose-800/80 max-w-md w-full rounded-2xl p-6 space-y-4">
+            <div className="flex items-center gap-2.5 text-rose-400">
+              <AlertCircle className="w-5 h-5 text-rose-500" />
+              <h3 className="text-base font-bold text-white">প্রকল্প ডিলিট করুন (Delete Project)</h3>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              আপনি কি নিশ্চিত যে <strong className="text-white">{deleteConfirmProject.name}</strong> ({deleteConfirmProject.code}) প্রকল্পটি মুছে ফেলতে চান? 
+              {deleteConfirmProject.spentBudget > 0 && (
+                <span className="block mt-1 text-rose-300">
+                  সতর্কতা: এই প্রকল্পের অধীন ৳{deleteConfirmProject.spentBudget.toLocaleString()} খরচ হিসেবে দেখানো হয়েছে।
+                </span>
+              )}
+            </p>
+            <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmProject(null)}
+                className="px-3 py-1.5 text-slate-400 hover:text-white text-xs cursor-pointer"
+              >
+                বাতিল
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteProject}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-rose-950/60 cursor-pointer"
+              >
+                হ্যাঁ, প্রকল্প মুছে ফেলুন
+              </button>
+            </div>
           </div>
         </div>
       )}

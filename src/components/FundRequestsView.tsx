@@ -5,7 +5,7 @@ import {
 import { getTranslation } from '../services/i18n';
 import { 
   Plus, CheckCircle2, Clock, XCircle, Building2, Send, 
-  Wallet, Landmark, Smartphone, X, ShieldAlert, Sparkles, UserCheck, ShieldCheck 
+  Wallet, Landmark, Smartphone, X, ShieldAlert, Sparkles, UserCheck, ShieldCheck, Edit3, Trash2 
 } from 'lucide-react';
 
 interface FundRequestsViewProps {
@@ -37,6 +37,8 @@ interface FundRequestsViewProps {
   onApproveByManagement: (requestId: string, notes: string) => void;
   onReject: (requestId: string, reason: string) => void;
   onDisburse: (requestId: string, method: FundSourceMethod) => void;
+  onEditFundRequest?: (requestId: string, updatedData: Partial<FundRequest>) => { success: boolean; message: string };
+  onDeleteFundRequest?: (requestId: string) => { success: boolean; message: string };
 }
 
 const EXPENSE_CATEGORIES: ExpenseCategory[] = [
@@ -70,10 +72,47 @@ export const FundRequestsView: React.FC<FundRequestsViewProps> = ({
   onApproveByManagement,
   onReject,
   onDisburse,
+  onEditFundRequest,
+  onDeleteFundRequest,
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING_VERIFICATION' | 'VERIFIED_BY_ACCOUNTS' | 'APPROVED_BY_MANAGEMENT' | 'DISBURSED' | 'REJECTED'>('ALL');
   const [selectedBranchId, setSelectedBranchId] = useState<string>('ALL');
+
+  // Edit & Delete Requisition State
+  const [editingRequest, setEditingRequest] = useState<FundRequest | null>(null);
+  const [editReqAmount, setEditReqAmount] = useState<number>(0);
+  const [editReqPurpose, setEditReqPurpose] = useState('');
+  const [editReqCategory, setEditReqCategory] = useState<string>('');
+  const [deleteConfirmReq, setDeleteConfirmReq] = useState<FundRequest | null>(null);
+
+  const openEditModal = (req: FundRequest) => {
+    setEditingRequest(req);
+    setEditReqAmount(req.amount);
+    setEditReqPurpose(req.purpose);
+    setEditReqCategory(req.category);
+  };
+
+  const handleSaveEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRequest) return;
+    if (onEditFundRequest) {
+      onEditFundRequest(editingRequest.id, {
+        amount: Number(editReqAmount),
+        purpose: editReqPurpose.trim(),
+        category: editReqCategory,
+      });
+    }
+    setEditingRequest(null);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteConfirmReq) return;
+    if (onDeleteFundRequest) {
+      onDeleteFundRequest(deleteConfirmReq.id);
+    }
+    setDeleteConfirmReq(null);
+  };
 
   // Action Dialog State
   const [actingRequest, setActingRequest] = useState<FundRequest | null>(null);
@@ -599,6 +638,30 @@ export const FundRequestsView: React.FC<FundRequestsViewProps> = ({
                       <span>{t('actionDisburse')}</span>
                     </button>
                   )}
+
+                  {/* Edit & Delete Actions (If data wrong or duplicate) */}
+                  <div className="flex items-center gap-1.5 mt-2">
+                    {req.status !== 'DISBURSED' && (
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(req)}
+                        title="রিকুইজিশন সংশোধন (Edit Requisition)"
+                        className="p-1.5 text-sky-400 hover:text-sky-300 hover:bg-slate-800 rounded-lg border border-transparent hover:border-sky-700/50 transition-colors cursor-pointer"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {(isManagement || isCentralAccounts || currentUser.id === req.requestedByUserId) && (
+                      <button
+                        type="button"
+                        onClick={() => setDeleteConfirmReq(req)}
+                        title="রিকুইজিশন বাতিল বা ডিলিট করুন (Delete Requisition)"
+                        className="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-950/60 rounded-lg border border-transparent hover:border-rose-800/50 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1182,6 +1245,127 @@ export const FundRequestsView: React.FC<FundRequestsViewProps> = ({
                   {language === 'bn' ? 'বিতরণ নিশ্চিত করুন' : 'Confirm Disbursement'}
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT FUND REQUISITION MODAL */}
+      {editingRequest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm">
+          <div className="w-full max-w-lg bg-slate-900 rounded-2xl border border-slate-700 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-sky-400" />
+                <div>
+                  <h3 className="text-base font-bold text-white">
+                    {language === 'bn' ? 'ফান্ড রিকুইজিশন সংশোধন' : 'Edit Fund Requisition'}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {editingRequest.requestNumber} · {editingRequest.branchName}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingRequest(null)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditSubmit} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">
+                  {language === 'bn' ? 'টাকার পরিমাণ (BDT)' : 'Amount (BDT)'} *
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  value={editReqAmount}
+                  onChange={e => setEditReqAmount(Number(e.target.value))}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white font-mono font-bold text-sm focus:outline-none focus:border-sky-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">
+                  {language === 'bn' ? 'খরচের খাত / ক্যাটাগরি' : 'Expense Category'} *
+                </label>
+                <select
+                  value={editReqCategory}
+                  onChange={e => setEditReqCategory(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500 cursor-pointer"
+                >
+                  {EXPENSE_CATEGORIES.map((cat, i) => (
+                    <option key={i} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">
+                  {language === 'bn' ? 'খরচের কারণ ও বিবরণ (Purpose)' : 'Purpose of Funds'} *
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={editReqPurpose}
+                  onChange={e => setEditReqPurpose(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingRequest(null)}
+                  className="px-4 py-2 text-slate-400 hover:text-white cursor-pointer"
+                >
+                  {language === 'bn' ? 'বাতিল' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl shadow-lg shadow-sky-950/60 cursor-pointer"
+                >
+                  {language === 'bn' ? 'সংরক্ষণ করুন' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRM DELETE FUND REQUISITION MODAL */}
+      {deleteConfirmReq && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+          <div className="w-full max-w-md bg-slate-900 rounded-2xl border border-rose-800/80 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center gap-2.5 text-rose-400">
+              <ShieldAlert className="w-5 h-5 text-rose-500" />
+              <h3 className="text-base font-bold text-white">
+                {language === 'bn' ? 'রিকুইজিশন বাতিল ও মুছে ফেলুন' : 'Delete Requisition'}
+              </h3>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              আপনি কি নিশ্চিত যে <strong className="text-white">{deleteConfirmReq.requestNumber}</strong> (৳{deleteConfirmReq.amount.toLocaleString()} - {deleteConfirmReq.branchName}) রিকুইজিশনটি সিস্টেম থেকে মুছে ফেলতে চান?
+            </p>
+            <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmReq(null)}
+                className="px-3.5 py-1.5 text-slate-400 hover:text-white text-xs cursor-pointer"
+              >
+                {language === 'bn' ? 'বাতিল' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-rose-950/60 cursor-pointer"
+              >
+                {language === 'bn' ? 'হ্যাঁ, ডিলিট করুন' : 'Confirm Delete'}
+              </button>
             </div>
           </div>
         </div>

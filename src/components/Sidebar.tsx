@@ -18,6 +18,7 @@ interface SidebarProps {
   pendingVouchersCount: number;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
+  customLogoUrl?: string;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -31,6 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   pendingVouchersCount,
   isMobileOpen = false,
   onCloseMobile,
+  customLogoUrl,
 }) => {
   const isSuperAdmin = currentUser.role === 'SUPER_ADMIN' || currentUser.staffId === '1002';
   const isManagement = currentUser.role === 'MANAGEMENT' || currentUser.role === 'SUPER_ADMIN' || isSuperAdmin;
@@ -119,7 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="p-4 border-b border-slate-800/80">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <LeedoLogo size="md" variant="horizontal" />
+                <LeedoLogo size="md" variant="horizontal" customLogoUrl={customLogoUrl} />
               </div>
               {/* Mobile Close Button */}
               <button

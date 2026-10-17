@@ -27,6 +27,10 @@ service cloud.firestore {
       allow read, write: if isSignedIn() || true;
     }
 
+    match /donors/{donorId} {
+      allow read, write: if isSignedIn() || true;
+    }
+
     match /vouchers/{voucherId} {
       allow read, write: if isSignedIn() || true;
     }
@@ -36,6 +40,10 @@ service cloud.firestore {
     }
 
     match /auditLogs/{logId} {
+      allow read, write: if isSignedIn() || true;
+    }
+
+    match /appSettings/{settingId} {
       allow read, write: if isSignedIn() || true;
     }
 

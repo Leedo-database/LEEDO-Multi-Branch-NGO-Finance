@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   User, Branch, SubBranch, Donor, Project, TransactionVoucher, AuditLog, 
-  PettyCashRecord, FundRequest, FundSourceMethod, ExpenseCategory, AppNotification, Language 
+  PettyCashRecord, FundRequest, FundSourceMethod, ExpenseCategory, AppNotification, Language, UserRole 
 } from '../types';
 import { 
   INITIAL_USERS, INITIAL_BRANCHES, INITIAL_SUB_BRANCHES, INITIAL_DONORS, 
@@ -9,26 +9,28 @@ import {
   INITIAL_NOTIFICATIONS, INITIAL_AUDIT_LOGS, INITIAL_PETTY_CASH_RECORDS 
 } from '../data/initialData';
 import { 
-  testFirestoreConnection, syncDocumentToFirestore 
+  testFirestoreConnection, syncDocumentToFirestore, deleteDocumentFromFirestore,
+  subscribeToCollection, subscribeToDocument 
 } from './firebase';
 import { 
   generateVoucherCode, generateRequisitionCode 
 } from '../utils/voucherCodeGenerator';
 
 const STORAGE_KEYS = {
-  USERS: 'leedo_users_v5',
-  CURRENT_USER_ID: 'leedo_current_user_id_v5',
-  BRANCHES: 'leedo_branches_v4',
-  SUB_BRANCHES: 'leedo_sub_branches_v4',
-  DONORS: 'leedo_donors_v4',
-  PROJECTS: 'leedo_projects_v4',
-  VOUCHERS: 'leedo_vouchers_v4',
-  FUND_REQUESTS: 'leedo_fund_requests_v4',
-  NOTIFICATIONS: 'leedo_notifications_v4',
-  AUDIT_LOGS: 'leedo_audit_logs_v4',
-  PETTY_CASH: 'leedo_petty_cash_v4',
-  IS_LOGGED_IN: 'leedo_is_logged_in_v5',
-  LANGUAGE: 'leedo_language_v4',
+  USERS: 'leedo_users_v6',
+  CURRENT_USER_ID: 'leedo_current_user_id_v6',
+  BRANCHES: 'leedo_branches_v6',
+  SUB_BRANCHES: 'leedo_sub_branches_v6',
+  DONORS: 'leedo_donors_v6',
+  PROJECTS: 'leedo_projects_v6',
+  VOUCHERS: 'leedo_vouchers_v6',
+  FUND_REQUESTS: 'leedo_fund_requests_v6',
+  NOTIFICATIONS: 'leedo_notifications_v6',
+  AUDIT_LOGS: 'leedo_audit_logs_v6',
+  PETTY_CASH: 'leedo_petty_cash_v6',
+  IS_LOGGED_IN: 'leedo_is_logged_in_v6',
+  LANGUAGE: 'leedo_language_v6',
+  CUSTOM_LOGO: 'leedo_custom_logo_v6',
 };
 
 function getStored<T>(key: string, fallback: T): T {
@@ -55,6 +57,7 @@ export function useLeedoStore() {
   const [currentUserId, setCurrentUserId] = useState<string>(() => getStored(STORAGE_KEYS.CURRENT_USER_ID, 'usr-1004'));
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => getStored(STORAGE_KEYS.IS_LOGGED_IN, false));
   const [language, setLanguageState] = useState<Language>(() => getStored(STORAGE_KEYS.LANGUAGE, 'bn'));
+  const [customLogoUrl, setCustomLogoUrl] = useState<string>(() => getStored(STORAGE_KEYS.CUSTOM_LOGO, ''));
   const [branches, setBranches] = useState<Branch[]>(() => getStored(STORAGE_KEYS.BRANCHES, INITIAL_BRANCHES));
   const [subBranches, setSubBranches] = useState<SubBranch[]>(() => getStored(STORAGE_KEYS.SUB_BRANCHES, INITIAL_SUB_BRANCHES));
   const [donors, setDonors] = useState<Donor[]>(() => getStored(STORAGE_KEYS.DONORS, INITIAL_DONORS));
@@ -66,13 +69,103 @@ export function useLeedoStore() {
   const [pettyCashLogs, setPettyCashLogs] = useState<PettyCashRecord[]>(() => getStored(STORAGE_KEYS.PETTY_CASH, INITIAL_PETTY_CASH_RECORDS));
   const [firebaseStatus, setFirebaseStatus] = useState<'CONNECTING' | 'CONNECTED' | 'OFFLINE'>('CONNECTING');
 
-  // Verify Firebase Firestore on mount
+  // Verify Firebase Firestore on mount and subscribe to real-time Cloud updates
   useEffect(() => {
     testFirestoreConnection().then(connected => {
       setFirebaseStatus(connected ? 'CONNECTED' : 'CONNECTED');
     }).catch(() => {
       setFirebaseStatus('CONNECTED');
     });
+
+    // 1. Subscribe to Organization Settings (Logo & Config)
+    const unsubSettings = subscribeToDocument<{ logoUrl?: string }>('appSettings', 'orgConfig', (data) => {
+      if (data && data.logoUrl !== undefined) {
+        setCustomLogoUrl(data.logoUrl);
+        setStored(STORAGE_KEYS.CUSTOM_LOGO, data.logoUrl);
+      }
+    });
+
+    // 2. Subscribe to Users
+    const unsubUsers = subscribeToCollection<User>('users', (cloudUsers) => {
+      if (cloudUsers && cloudUsers.length > 0) {
+        setUsers(cloudUsers);
+      } else {
+        // Seed users to cloud once
+        INITIAL_USERS.forEach(u => syncDocumentToFirestore('users', u.id, u));
+      }
+    });
+
+    // 3. Subscribe to Branches
+    const unsubBranches = subscribeToCollection<Branch>('branches', (cloudBranches) => {
+      if (cloudBranches && cloudBranches.length > 0) {
+        setBranches(cloudBranches);
+      } else {
+        INITIAL_BRANCHES.forEach(b => syncDocumentToFirestore('branches', b.id, b));
+      }
+    });
+
+    // 4. Subscribe to Sub-Branches
+    const unsubSubBranches = subscribeToCollection<SubBranch>('subBranches', (cloudSubs) => {
+      if (cloudSubs && cloudSubs.length > 0) {
+        setSubBranches(cloudSubs);
+      } else {
+        INITIAL_SUB_BRANCHES.forEach(s => syncDocumentToFirestore('subBranches', s.id, s));
+      }
+    });
+
+    // 5. Subscribe to Projects
+    const unsubProjects = subscribeToCollection<Project>('projects', (cloudProjects) => {
+      if (cloudProjects && cloudProjects.length > 0) {
+        setProjects(cloudProjects);
+      } else {
+        INITIAL_PROJECTS.forEach(p => syncDocumentToFirestore('projects', p.id, p));
+      }
+    });
+
+    // 6. Subscribe to Donors
+    const unsubDonors = subscribeToCollection<Donor>('donors', (cloudDonors) => {
+      if (cloudDonors && cloudDonors.length > 0) {
+        setDonors(cloudDonors);
+      } else {
+        INITIAL_DONORS.forEach(d => syncDocumentToFirestore('donors', d.id, d));
+      }
+    });
+
+    // 7. Subscribe to Vouchers
+    const unsubVouchers = subscribeToCollection<TransactionVoucher>('vouchers', (cloudVouchers) => {
+      if (cloudVouchers) {
+        const sorted = [...cloudVouchers].sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime());
+        setVouchers(sorted);
+      }
+    });
+
+    // 8. Subscribe to Fund Requests
+    const unsubFundRequests = subscribeToCollection<FundRequest>('fundRequests', (cloudRequests) => {
+      if (cloudRequests) {
+        const sorted = [...cloudRequests].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setFundRequests(sorted);
+      }
+    });
+
+    // 9. Subscribe to Audit Logs
+    const unsubAuditLogs = subscribeToCollection<AuditLog>('auditLogs', (cloudLogs) => {
+      if (cloudLogs) {
+        const sorted = [...cloudLogs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setAuditLogs(sorted);
+      }
+    });
+
+    return () => {
+      unsubSettings();
+      unsubUsers();
+      unsubBranches();
+      unsubSubBranches();
+      unsubProjects();
+      unsubDonors();
+      unsubVouchers();
+      unsubFundRequests();
+      unsubAuditLogs();
+    };
   }, []);
 
   const setLanguage = (lang: Language) => {
@@ -84,6 +177,7 @@ export function useLeedoStore() {
   useEffect(() => { setStored(STORAGE_KEYS.USERS, users); }, [users]);
   useEffect(() => { setStored(STORAGE_KEYS.CURRENT_USER_ID, currentUserId); }, [currentUserId]);
   useEffect(() => { setStored(STORAGE_KEYS.IS_LOGGED_IN, isLoggedIn); }, [isLoggedIn]);
+  useEffect(() => { setStored(STORAGE_KEYS.CUSTOM_LOGO, customLogoUrl); }, [customLogoUrl]);
   useEffect(() => { setStored(STORAGE_KEYS.BRANCHES, branches); }, [branches]);
   useEffect(() => { setStored(STORAGE_KEYS.SUB_BRANCHES, subBranches); }, [subBranches]);
   useEffect(() => { setStored(STORAGE_KEYS.DONORS, donors); }, [donors]);
@@ -317,6 +411,7 @@ export function useLeedoStore() {
     if (target.staffId === '1002') return { success: false, message: 'Super Admin Murshida Akhter Kanta cannot be removed.' };
 
     setUsers(prev => prev.filter(u => u.staffId !== targetStaffId));
+    deleteDocumentFromFirestore('users', target.id);
 
     logAudit(
       'REMOVE_STAFF',
@@ -340,6 +435,7 @@ export function useLeedoStore() {
 
     const newStatus = target.status === 'INACTIVE' ? 'ACTIVE' : 'INACTIVE';
     setUsers(prev => prev.map(u => u.staffId === targetStaffId ? { ...u, status: newStatus } : u));
+    syncDocumentToFirestore('users', target.id, { ...target, status: newStatus });
 
     logAudit(
       'DEACTIVATE_STAFF',
@@ -367,6 +463,7 @@ export function useLeedoStore() {
     // Default reset password is target's Employee ID (Staff ID / EID)
     const newPass = customPassword?.trim() || target.staffId;
     setUsers(prev => prev.map(u => u.staffId === targetStaffId ? { ...u, password: newPass, mustChangePassword: true } : u));
+    syncDocumentToFirestore('users', target.id, { ...target, password: newPass, mustChangePassword: true });
 
     logAudit(
       'RESET_PASSWORD',
@@ -380,6 +477,121 @@ export function useLeedoStore() {
       message: `${target.name} (ID: ${target.staffId})-এর পাসওয়ার্ড তার স্টাফ আইডি "${newPass}"-এ রিসেট করা হয়েছে। লগইনের পর পাসওয়ার্ড পরিবর্তন করতে বলা হবে।`,
       password: newPass
     };
+  };
+
+  // Super Admin / HR: Update Staff Details (ভুল তথ্য সংশোধন)
+  const updateStaff = (staffId: string, data: Partial<User>): { success: boolean; message: string } => {
+    if (!isSuperAdmin && !isManagement) {
+      return { success: false, message: 'Only Super Admin / HR (Murshida Akhter Kanta) can update staff information.' };
+    }
+
+    const target = users.find(u => u.staffId === staffId);
+    if (!target) return { success: false, message: 'Staff member not found.' };
+
+    const updated: User = {
+      ...target,
+      ...data,
+    };
+
+    setUsers(prev => prev.map(u => u.staffId === staffId ? updated : u));
+    syncDocumentToFirestore('users', target.id, updated);
+
+    logAudit(
+      'UPDATE',
+      'USER',
+      `STAFF-${target.staffId}`,
+      `HR ${currentUser.name} updated details for staff ${target.name} (ID: ${target.staffId}).`
+    );
+
+    return { success: true, message: `Staff ${target.name} (ID: ${target.staffId}) updated successfully.` };
+  };
+
+  // Super Admin / HR: Transfer Staff (শাখা বদলি ও অ্যাক্সেস পরিবর্তন)
+  const transferStaff = (
+    staffId: string, 
+    targetBranchId: string, 
+    newRole?: UserRole, 
+    newDesignation?: string, 
+    newAssignedUnits?: string[]
+  ): { success: boolean; message: string } => {
+    if (!isSuperAdmin && !isManagement) {
+      return { success: false, message: 'Only Super Admin / HR (Murshida Akhter Kanta) can transfer staff.' };
+    }
+
+    const target = users.find(u => u.staffId === staffId);
+    if (!target) return { success: false, message: 'Staff member not found.' };
+
+    const targetBranch = branches.find(b => b.id === targetBranchId);
+    const oldBranchName = target.branchName || 'Head Office';
+    const newBranchName = targetBranch ? targetBranch.name : 'Head Office';
+
+    const updated: User = {
+      ...target,
+      branchId: targetBranchId,
+      branchName: newBranchName,
+      role: newRole || target.role,
+      designation: newDesignation || target.designation,
+      assignedUnits: newAssignedUnits || target.assignedUnits,
+    };
+
+    setUsers(prev => prev.map(u => u.staffId === staffId ? updated : u));
+    syncDocumentToFirestore('users', target.id, updated);
+
+    logAudit(
+      'UPDATE',
+      'USER',
+      `STAFF-${target.staffId}`,
+      `Staff ${target.name} transferred from ${oldBranchName} to ${newBranchName}. Role: ${updated.role}, Designation: ${updated.designation}.`
+    );
+
+    return { 
+      success: true, 
+      message: `${target.name}-কে সফলভাবে ${newBranchName}-এ বদলি ও পদবি হালনাগাদ করা হয়েছে।` 
+    };
+  };
+
+  // Super Admin / HR: Update Organization Logo (hr & kanta logo change korte parbe)
+  const updateLogo = (newLogoUrl: string): { success: boolean; message: string } => {
+    if (!isSuperAdmin && !isManagement) {
+      return { success: false, message: 'Only Super Admin / HR (Murshida Akhter Kanta) can change the organization logo.' };
+    }
+
+    setCustomLogoUrl(newLogoUrl);
+    setStored(STORAGE_KEYS.CUSTOM_LOGO, newLogoUrl);
+
+    // Save to Firestore appSettings collection
+    syncDocumentToFirestore('appSettings', 'orgConfig', {
+      logoUrl: newLogoUrl,
+      updatedAt: new Date().toISOString(),
+      updatedBy: currentUser.name,
+    });
+
+    logAudit(
+      'UPDATE',
+      'BRANCH',
+      'ORG-LOGO',
+      `Super Admin ${currentUser.name} updated the organization logo.`
+    );
+
+    return { success: true, message: 'Organization logo updated successfully and synced to cloud.' };
+  };
+
+  const resetLogo = () => {
+    setCustomLogoUrl('');
+    setStored(STORAGE_KEYS.CUSTOM_LOGO, '');
+
+    syncDocumentToFirestore('appSettings', 'orgConfig', {
+      logoUrl: '',
+      updatedAt: new Date().toISOString(),
+      updatedBy: currentUser.name,
+    });
+
+    logAudit(
+      'UPDATE',
+      'BRANCH',
+      'ORG-LOGO',
+      `Super Admin ${currentUser.name} reset the logo to official default LEEDO logo.`
+    );
   };
 
   // Add Dynamic Sub-Branch under a Branch
@@ -732,6 +944,48 @@ export function useLeedoStore() {
     );
   };
 
+  // Edit Fund Request (ভুল তথ্য বা টাকার পরিমাণ সংশোধন)
+  const editFundRequest = (requestId: string, updatedData: Partial<FundRequest>): { success: boolean; message: string } => {
+    const existing = fundRequests.find(r => r.id === requestId);
+    if (!existing) return { success: false, message: 'Requisition not found.' };
+
+    const updated: FundRequest = {
+      ...existing,
+      ...updatedData,
+      updatedAt: new Date().toISOString(),
+    };
+
+    setFundRequests(prev => prev.map(r => r.id === requestId ? updated : r));
+    syncDocumentToFirestore('fundRequests', requestId, updated);
+
+    logAudit(
+      'UPDATE',
+      'FUND_REQUEST',
+      existing.requestNumber,
+      `Requisition ${existing.requestNumber} modified by ${currentUser.name}.`
+    );
+
+    return { success: true, message: `রিকুইজিশন ${existing.requestNumber} সফলভাবে আপডেট করা হয়েছে।` };
+  };
+
+  // Delete Fund Request (ভুল রিকুইজিশন বাতিল বা মুছে ফেলা)
+  const deleteFundRequest = (requestId: string): { success: boolean; message: string } => {
+    const existing = fundRequests.find(r => r.id === requestId);
+    if (!existing) return { success: false, message: 'Requisition not found.' };
+
+    setFundRequests(prev => prev.filter(r => r.id !== requestId));
+    deleteDocumentFromFirestore('fundRequests', requestId);
+
+    logAudit(
+      'DELETE',
+      'FUND_REQUEST',
+      existing.requestNumber,
+      `Requisition ${existing.requestNumber} deleted by ${currentUser.name}.`
+    );
+
+    return { success: true, message: `রিকুইজিশন ${existing.requestNumber} সফলভাবে ডিলিট করা হয়েছে।` };
+  };
+
   // Add Voucher (Expense, Donation, Transfer, Advance Adjustment)
   // CRITICAL CONSTRAINT: Branch Rep CANNOT record donation or income! Branch Rep can record expenses and advance adjustments!
   const addVoucher = (newVoucherData: Omit<TransactionVoucher, 'id' | 'voucherNumber' | 'createdAt' | 'updatedAt' | 'createdBy' | 'status'>) => {
@@ -958,6 +1212,133 @@ export function useLeedoStore() {
     );
   };
 
+  // Edit Voucher (ভুল ভাউচারের এন্ট্রি, বিবরণ বা টাকার পরিমাণ সংশোধন)
+  const editVoucher = (voucherId: string, updatedData: Partial<TransactionVoucher>): { success: boolean; message: string } => {
+    const existing = vouchers.find(v => v.id === voucherId);
+    if (!existing) return { success: false, message: 'Voucher not found.' };
+
+    const oldAmount = existing.amount;
+    const newAmount = updatedData.amount !== undefined ? updatedData.amount : oldAmount;
+    const amountDiff = newAmount - oldAmount;
+
+    const updated: TransactionVoucher = {
+      ...existing,
+      ...updatedData,
+      updatedAt: new Date().toISOString(),
+    };
+
+    setVouchers(prev => prev.map(v => v.id === voucherId ? updated : v));
+
+    // If already approved, apply the difference to branch and project
+    if (existing.status === 'APPROVED' && amountDiff !== 0) {
+      if ((existing.type === 'EXPENSE_PROCUREMENT' || existing.type === 'ADVANCE_ADJUSTMENT') && existing.projectId) {
+        setProjects(prev => prev.map(p => {
+          if (p.id === existing.projectId) {
+            const updatedAllocations = p.branchAllocations.map(ba => {
+              if (ba.branchId === existing.branchId) {
+                return { ...ba, spentAmount: ba.spentAmount + amountDiff };
+              }
+              return ba;
+            });
+            return {
+              ...p,
+              spentBudget: p.spentBudget + amountDiff,
+              branchAllocations: updatedAllocations,
+            };
+          }
+          return p;
+        }));
+
+        setBranches(prev => prev.map(b => {
+          if (b.id === existing.branchId) {
+            return {
+              ...b,
+              totalSpent: b.totalSpent + amountDiff,
+              currentCashFloat: existing.fundSourceMethod === 'CASH' 
+                ? Math.max(0, b.currentCashFloat - amountDiff) 
+                : b.currentCashFloat,
+              bankBalance: existing.fundSourceMethod === 'BANK_TRANSFER' 
+                ? Math.max(0, b.bankBalance - amountDiff) 
+                : b.bankBalance,
+            };
+          }
+          return b;
+        }));
+      }
+    }
+
+    syncDocumentToFirestore('vouchers', voucherId, updated);
+
+    logAudit(
+      'UPDATE',
+      'VOUCHER',
+      existing.voucherNumber,
+      `Voucher ${existing.voucherNumber} edited by ${currentUser.name}.`
+    );
+
+    return { success: true, message: `ভাউচার ${existing.voucherNumber} সফলভাবে আপডেট করা হয়েছে।` };
+  };
+
+  // Delete Voucher (ভুল ভাউচার চিরতরে মুছে ফেলা ও ব্যালান্স সমন্বয়)
+  const deleteVoucher = (voucherId: string): { success: boolean; message: string } => {
+    const voucher = vouchers.find(v => v.id === voucherId);
+    if (!voucher) return { success: false, message: 'Voucher not found.' };
+
+    // Reverse financial impact if it was approved:
+    if (voucher.status === 'APPROVED') {
+      if ((voucher.type === 'EXPENSE_PROCUREMENT' || voucher.type === 'ADVANCE_ADJUSTMENT') && voucher.projectId) {
+        setProjects(prev => prev.map(p => {
+          if (p.id === voucher.projectId) {
+            const updatedAllocations = p.branchAllocations.map(ba => {
+              if (ba.branchId === voucher.branchId) {
+                return { ...ba, spentAmount: Math.max(0, ba.spentAmount - voucher.amount) };
+              }
+              return ba;
+            });
+            return {
+              ...p,
+              spentBudget: Math.max(0, p.spentBudget - voucher.amount),
+              branchAllocations: updatedAllocations,
+            };
+          }
+          return p;
+        }));
+
+        setBranches(prev => prev.map(b => {
+          if (b.id === voucher.branchId) {
+            return {
+              ...b,
+              totalSpent: Math.max(0, b.totalSpent - voucher.amount),
+              currentCashFloat: voucher.fundSourceMethod === 'CASH' 
+                ? (b.currentCashFloat + voucher.amount) 
+                : b.currentCashFloat,
+              bankBalance: voucher.fundSourceMethod === 'BANK_TRANSFER' 
+                ? (b.bankBalance + voucher.amount) 
+                : b.bankBalance,
+            };
+          }
+          return b;
+        }));
+      } else if (voucher.type === 'DONATION_INCOME') {
+        if (voucher.donorId) {
+          setDonors(prev => prev.map(d => d.id === voucher.donorId ? { ...d, totalContributed: Math.max(0, d.totalContributed - voucher.amount) } : d));
+        }
+      }
+    }
+
+    setVouchers(prev => prev.filter(v => v.id !== voucherId));
+    deleteDocumentFromFirestore('vouchers', voucherId);
+
+    logAudit(
+      'DELETE',
+      'VOUCHER',
+      voucher.voucherNumber,
+      `Voucher ${voucher.voucherNumber} (BDT ${voucher.amount.toLocaleString()}) permanently deleted by ${currentUser.name}.`
+    );
+
+    return { success: true, message: `ভাউচার ${voucher.voucherNumber} সফলভাবে ডিলিট করা হয়েছে।` };
+  };
+
   const reallocateProjectBudget = (
     projectId: string, 
     branchAllocations: Project['branchAllocations'], 
@@ -1064,6 +1445,61 @@ export function useLeedoStore() {
       newProject.code,
       `Created project ${newProject.name} with total budget BDT ${newProject.totalBudget.toLocaleString()}`
     );
+  };
+
+  const editProject = (projectId: string, updatedData: Partial<Project>): { success: boolean; message: string } => {
+    if (isBranchRep) return { success: false, message: 'Branch representatives cannot edit projects.' };
+    const existing = projects.find(p => p.id === projectId);
+    if (!existing) return { success: false, message: 'Project not found.' };
+
+    const updated: Project = {
+      ...existing,
+      ...updatedData,
+    };
+
+    setProjects(prev => prev.map(p => p.id === projectId ? updated : p));
+    syncDocumentToFirestore('projects', projectId, updated);
+
+    logAudit(
+      'UPDATE',
+      'PROJECT',
+      existing.code,
+      `Project ${existing.name} (${existing.code}) updated by ${currentUser.name}.`
+    );
+
+    return { success: true, message: `প্রকল্প ${existing.name} সফলভাবে আপডেট করা হয়েছে।` };
+  };
+
+  const deleteProject = (projectId: string): { success: boolean; message: string } => {
+    if (isBranchRep) return { success: false, message: 'Branch representatives cannot delete projects.' };
+    const existing = projects.find(p => p.id === projectId);
+    if (!existing) return { success: false, message: 'Project not found.' };
+
+    // Reverse any allocated budget from branches if not spent
+    existing.branchAllocations.forEach(ba => {
+      setBranches(prev => prev.map(b => {
+        if (b.id === ba.branchId) {
+          return {
+            ...b,
+            totalAllocated: Math.max(0, b.totalAllocated - ba.allocatedAmount),
+            activeProjectsCount: Math.max(0, b.activeProjectsCount - 1),
+          };
+        }
+        return b;
+      }));
+    });
+
+    setProjects(prev => prev.filter(p => p.id !== projectId));
+    deleteDocumentFromFirestore('projects', projectId);
+
+    logAudit(
+      'DELETE',
+      'PROJECT',
+      existing.code,
+      `Project ${existing.name} (${existing.code}) deleted by ${currentUser.name}.`
+    );
+
+    return { success: true, message: `প্রকল্প ${existing.name} সফলভাবে মুছে ফেলা হয়েছে।` };
   };
 
   const addBranch = (newBranchData: Omit<Branch, 'id' | 'totalSpent' | 'activeProjectsCount' | 'currentCashFloat'> & { initialCashFloat: number }) => {
@@ -1262,6 +1698,9 @@ export function useLeedoStore() {
     isLoggedIn,
     language,
     setLanguage,
+    customLogoUrl,
+    updateLogo,
+    resetLogo,
     loginWithCredentials,
     logout,
     changePassword,
@@ -1292,19 +1731,27 @@ export function useLeedoStore() {
     firebaseStatus,
     addSubBranch,
     addStaff,
+    updateStaff,
+    transferStaff,
     removeStaff,
     toggleStaffStatus,
     resetStaffPassword,
     disbursePayroll,
     addFundRequest,
+    editFundRequest,
+    deleteFundRequest,
     verifyFundRequestByAccounts,
     approveFundRequestByManagement,
     rejectFundRequest,
     disburseFundRequest,
     addVoucher,
+    editVoucher,
+    deleteVoucher,
     approveVoucher,
     rejectVoucher,
     createProject,
+    editProject,
+    deleteProject,
     reallocateProjectBudget,
     closeProject,
     addBranch,

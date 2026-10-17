@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { User, Language } from '../types';
 import { LeedoLogo } from './LeedoLogo';
-import { Eye, EyeOff, Lock, UserCheck, X, ShieldCheck, KeyRound, ArrowRight } from 'lucide-react';
-import { getTranslation } from '../services/i18n';
+import { Eye, EyeOff, Lock, UserCheck, X, ArrowRight, Shield } from 'lucide-react';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -12,70 +11,8 @@ interface LoginModalProps {
   language?: Language;
   onLanguageChange?: (lang: Language) => void;
   isStandalone?: boolean;
+  customLogoUrl?: string;
 }
-
-const DEMO_ACCOUNTS = [
-  {
-    staffId: '1002',
-    name: 'Murshida Akhter Kanta',
-    roleLabel: 'সুপার এডমিন ও এইচআর (Super Admin & HR)',
-    designation: 'Director - Admin, HR & Finance',
-    tag: 'সর্বোচ্চ ক্ষমতা: পাসওয়ার্ড রিসেট (পাসওয়ার্ড = স্টাফ আইডি), কর্মী যোগ ও বাদ দেওয়া',
-    border: 'border-purple-600/60 bg-purple-950/40 text-purple-200',
-    btnBg: 'bg-purple-600 hover:bg-purple-500 text-white',
-    password: '1002',
-  },
-  {
-    staffId: '1001',
-    name: 'Forhad Hossain',
-    roleLabel: 'নির্বাহী পরিচালক (Management)',
-    designation: 'Founder & Executive Director',
-    tag: 'চূড়ান্ত বাজেট অনুমোদন ও অডিট ওভারসাইট',
-    border: 'border-red-600/60 bg-red-950/40 text-red-200',
-    btnBg: 'bg-red-600 hover:bg-red-500 text-white',
-    password: '1001',
-  },
-  {
-    staffId: '1004',
-    name: 'Md. Habibur Rahman',
-    roleLabel: 'কেন্দ্রীয় অ্যাকাউন্টস (Central Accounts)',
-    designation: 'Head Accountant',
-    tag: 'ভাউচার যাচাই, বিল অডিট ও তহবিল ছাড়',
-    border: 'border-blue-600/60 bg-blue-950/40 text-blue-200',
-    btnBg: 'bg-blue-600 hover:bg-blue-500 text-white',
-    password: '1004',
-  },
-  {
-    staffId: '1079',
-    name: 'Sazzad Hosen',
-    roleLabel: 'সহকারী হিসাবরক্ষক (Accounts Dept)',
-    designation: 'Assistant Accountant',
-    tag: 'বিল ও ভাউচার পরীক্ষণ ও এন্ট্রি',
-    border: 'border-cyan-600/60 bg-cyan-950/40 text-cyan-200',
-    btnBg: 'bg-cyan-600 hover:bg-cyan-500 text-white',
-    password: '1079',
-  },
-  {
-    staffId: '1023',
-    name: 'Md. Masud',
-    roleLabel: 'শাখা ইনচার্জ (Branch Rep)',
-    designation: 'Kamalapur Branch Incharge',
-    tag: 'খরচ এন্ট্রি, দোকানের বিল আপলোড ও রিকুইজিশন',
-    border: 'border-emerald-600/60 bg-emerald-950/40 text-emerald-200',
-    btnBg: 'bg-emerald-600 hover:bg-emerald-500 text-white',
-    password: '1023',
-  },
-  {
-    staffId: '1028',
-    name: 'Saidur Rahman Sajan',
-    roleLabel: 'মাঠ কর্মকর্তা (Branch Rep)',
-    designation: 'Kadamtali Branch Mobilizer',
-    tag: 'কদমতলী সেন্টার খরচ ও পেটি ক্যাশ ব্যবস্থাপনা',
-    border: 'border-emerald-600/60 bg-emerald-950/40 text-emerald-200',
-    btnBg: 'bg-emerald-600 hover:bg-emerald-500 text-white',
-    password: '1028',
-  },
-];
 
 export const LoginModal: React.FC<LoginModalProps> = ({
   isOpen,
@@ -84,6 +21,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   language = 'bn',
   onLanguageChange,
   isStandalone = false,
+  customLogoUrl = '',
 }) => {
   if (!isOpen) return null;
 
@@ -91,31 +29,25 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+
     if (!staffIdOrEmail.trim()) {
-      setErrorMsg(language === 'bn' ? 'অনুগ্রহ করে স্টাফ আইডি বা ইমেইল লিখুন।' : 'Please enter your Staff ID or Email.');
+      setErrorMsg(language === 'bn' ? 'অনুগ্রহ করে স্টাফ আইডি (EID) বা ইমেইল লিখুন।' : 'Please enter your Employee ID (EID) or Email.');
       return;
     }
     if (!password) {
-      setErrorMsg(language === 'bn' ? 'অনুগ্রহ করে পাসওয়ার্ড লিখুন (ডিফল্ট পাসওয়ার্ড আপনার স্টাফ আইডি)।' : 'Please enter password (default is your Staff ID).');
+      setErrorMsg(language === 'bn' ? 'অনুগ্রহ করে পাসওয়ার্ড লিখুন।' : 'Please enter your password.');
       return;
     }
-    const res = onLogin(staffIdOrEmail, password);
-    if (res.success) {
-      if (onClose) onClose();
-    } else {
-      setErrorMsg(res.message);
-    }
-  };
 
-  const handleQuickLogin = (demoStaffId: string, demoPass: string) => {
-    setStaffIdOrEmail(demoStaffId);
-    setPassword(demoPass);
-    setErrorMsg('');
-    const res = onLogin(demoStaffId, demoPass);
+    setIsSubmitting(true);
+    const res = onLogin(staffIdOrEmail.trim(), password);
+    setIsSubmitting(false);
+
     if (res.success) {
       if (onClose) onClose();
     } else {
@@ -127,9 +59,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     <div className={`fixed inset-0 z-50 overflow-y-auto ${
       isStandalone ? 'bg-slate-950 min-h-screen' : 'bg-black/85 backdrop-blur-md'
     }`}>
-      {/* Centering wrapper with min-h-full and items-start so top is never cut off */}
-      <div className="min-h-full w-full flex items-start sm:items-center justify-center p-2.5 sm:p-6 py-4 sm:py-8">
-        <div className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden my-auto relative">
+      {/* Centering wrapper with min-h-full so top is never cut off on small screens */}
+      <div className="min-h-full w-full flex items-start sm:items-center justify-center p-3 sm:p-6 py-6 sm:py-10">
+        <div className="bg-slate-900 border border-slate-700 w-full max-w-md sm:max-w-lg rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden my-auto relative">
+          
           {/* Close button for non-standalone mode */}
           {onClose && !isStandalone && (
             <button
@@ -166,168 +99,127 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
           )}
 
-          {/* Top Official Header */}
-          <div className="p-4 sm:p-6 bg-slate-950 border-b border-slate-800 flex flex-col items-center text-center relative overflow-hidden">
+          {/* Official NGO Header */}
+          <div className="p-6 sm:p-8 bg-slate-950 border-b border-slate-800 flex flex-col items-center text-center relative overflow-hidden">
             <div className="absolute top-0 right-0 w-80 h-40 bg-red-600/10 blur-3xl pointer-events-none" />
             
-            {/* Logo: Compact horizontal on mobile, stacked on tablet/desktop */}
-            <div className="flex flex-col items-center">
-              <div className="sm:hidden mb-1">
-                <LeedoLogo size="md" variant="horizontal" />
+            {/* Logo: Respects custom logo if uploaded by HR */}
+            <div className="flex flex-col items-center mb-3">
+              <div className="sm:hidden">
+                <LeedoLogo size="md" variant="horizontal" customLogoUrl={customLogoUrl} />
               </div>
               <div className="hidden sm:block">
-                <LeedoLogo size="lg" variant="stacked" />
+                <LeedoLogo size="lg" variant="stacked" customLogoUrl={customLogoUrl} />
               </div>
             </div>
 
-            <h2 className="text-base sm:text-xl font-black text-white mt-2 sm:mt-3 tracking-tight">
-              {language === 'bn' ? 'লিডো মাল্টি-ব্রাঞ্চ অ্যাকাউন্টিং সিস্টেমে লগইন' : 'LEEDO Multi-Branch Accounting System'}
-            </h2>
-            <p className="text-[11px] sm:text-xs text-slate-400 mt-1 max-w-md px-2">
+            <h1 className="text-lg sm:text-xl font-black text-white tracking-tight">
+              {language === 'bn' ? 'লিডো অ্যাকাউন্টিং ও ফিন্যান্সিয়াল সিস্টেম' : 'LEEDO Accounting & Financial System'}
+            </h1>
+            <p className="text-[11px] sm:text-xs text-slate-400 mt-1 max-w-sm">
               Local Education and Economic Development Organization (Govt. Reg # DHA-09281)
             </p>
           </div>
 
-        {/* Two-Column Grid: Left is Credentials Form, Right is Demo Passwords & Roles */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-800">
-          {/* Left Column: Direct Login Form (5 cols) */}
-          <div className="lg:col-span-5 p-6 space-y-4">
-            <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Lock className="w-4 h-4 text-red-500" />
-                <span>{language === 'bn' ? 'কর্মীর লগইন (Staff Login with EID)' : 'Staff Login'}</span>
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {language === 'bn' ? 'আপনার স্টাফ আইডি (EID) ও পাসওয়ার্ড দিয়ে প্রবেশ করুন' : 'Enter your Employee ID (EID) & password'}
-              </p>
+          {/* Login Form Body */}
+          <div className="p-6 sm:p-8 space-y-5">
+            <div className="flex items-center gap-2 border-b border-slate-800/80 pb-3">
+              <div className="w-8 h-8 rounded-lg bg-red-950/80 border border-red-800/60 flex items-center justify-center text-red-400">
+                <Lock className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-white">
+                  {language === 'bn' ? 'কর্মীর প্রবেশদ্বার (Staff Login)' : 'Staff Login'}
+                </h2>
+                <p className="text-[11px] text-slate-400">
+                  {language === 'bn' ? 'আপনার স্টাফ আইডি (EID) ও পাসওয়ার্ড লিখুন' : 'Enter your Employee ID (EID) & password'}
+                </p>
+              </div>
             </div>
 
             {errorMsg && (
-              <div className="p-3 bg-rose-950/80 border border-rose-800 rounded-xl text-xs text-rose-200">
+              <div className="p-3.5 bg-rose-950/80 border border-rose-800 rounded-xl text-xs text-rose-200 leading-relaxed animate-in fade-in">
                 {errorMsg}
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+              {/* Employee ID (EID) */}
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">
-                  {language === 'bn' ? 'কর্মীর আইডি / EID (Employee ID)' : 'Employee ID (EID) or Email'} *
+                <label className="block text-slate-300 font-semibold mb-1.5">
+                  {language === 'bn' ? 'স্টাফ আইডি / Employee ID (EID)' : 'Employee ID (EID) or Email'} *
                 </label>
-                <input
-                  type="text"
-                  required
-                  placeholder={language === 'bn' ? 'আপনার স্টাফ আইডি (EID) দিন (যেমন: 1023, 1004, 1002)' : 'e.g. 1023, 1004, 1002'}
-                  value={staffIdOrEmail}
-                  onChange={e => setStaffIdOrEmail(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500 font-mono font-bold"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    placeholder={language === 'bn' ? 'আপনার আইডি নম্বর দিন (যেমন: 1002, 1004, 1023)' : 'Enter your ID (e.g. 1002, 1004, 1023)'}
+                    value={staffIdOrEmail}
+                    onChange={e => setStaffIdOrEmail(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-3 text-sm text-white focus:outline-none focus:border-red-500 font-mono font-bold tracking-wide transition-colors"
+                  />
+                  <div className="absolute right-3.5 top-3.5 text-slate-500">
+                    <UserCheck className="w-4 h-4" />
+                  </div>
+                </div>
               </div>
 
+              {/* Password */}
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-slate-300 font-semibold">
-                    {language === 'bn' ? 'পাসওয়ার্ড (Password)' : 'Account Password'} *
-                  </label>
-                  <span className="text-[11px] text-amber-400 font-mono">
-                    {language === 'bn' ? 'ডিফল্ট: আপনার EID' : 'Default: Your EID'}
-                  </span>
-                </div>
+                <label className="block text-slate-300 font-semibold mb-1.5">
+                  {language === 'bn' ? 'পাসওয়ার্ড (Password)' : 'Account Password'} *
+                </label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
-                    placeholder={language === 'bn' ? 'পাসওয়ার্ড লিখুন (ডিফল্ট: আপনার EID)' : 'Enter password (default: your EID)'}
+                    placeholder={language === 'bn' ? 'আপনার পাসওয়ার্ড লিখুন' : 'Enter your password'}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-red-500 font-mono"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 pr-11 py-3 text-sm text-white focus:outline-none focus:border-red-500 font-mono tracking-wide transition-colors"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-slate-400 hover:text-white cursor-pointer"
+                    className="absolute right-3.5 top-3.5 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
 
+              {/* Submit Button */}
               <button
                 type="submit"
-                className="w-full py-3 px-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl shadow-lg shadow-red-900/40 transition-all text-xs tracking-wide cursor-pointer flex items-center justify-center gap-2"
+                disabled={isSubmitting}
+                className="w-full py-3.5 px-4 bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-900/40 transition-all text-sm tracking-wide cursor-pointer flex items-center justify-center gap-2 mt-2"
               >
                 <span>{language === 'bn' ? 'সিস্টেমে প্রবেশ করুন' : 'Sign In Now'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
 
-            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-amber-900/40 text-[11px] text-slate-300 space-y-1.5">
-              <div className="font-semibold text-amber-400 flex items-center gap-1.5">
-                <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-                <span>পাসওয়ার্ড ও নিরাপত্তা নির্দেশিকা:</span>
-              </div>
-              <p className="leading-relaxed text-slate-300">
-                • <strong>ডিফল্ট পাসওয়ার্ড:</strong> প্রতিটি কর্মীর প্রাথমিক পাসওয়ার্ড হলো তার <strong>স্টাফ আইডি (EID)</strong> (যেমন: ১০২৩-এর পাসওয়ার্ড ১০২৩)।<br />
-                • <strong>এইচআর রিসেট:</strong> পাসওয়ার্ড ভুলে গেলে এইচআর / সুপার এডমিন মুর্শিদা আক্তার কান্তা (ID: 1002) পাসওয়ার্ড রিসেট করতে পারবেন (রিসেট পাসওয়ার্ডও হবে স্টাফ আইডি)।<br />
-                • <strong>বাধ্যতামূলক পরিবর্তন:</strong> ডিফল্ট পাসওয়ার্ড দিয়ে লগইন করার সাথে সাথে নিজস্ব নতুন গোপন পাসওয়ার্ড পরিবর্তনের নির্দেশনা আসবে।
-              </p>
-            </div>
-          </div>
-
-          {/* Right Column: Demo Password & One-Click Role Switcher (7 cols) */}
-          <div className="lg:col-span-7 p-6 bg-slate-950/60 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span>{language === 'bn' ? 'ডেমো অ্যাকাউন্ট ও রোল সমূহ (১-ক্লিক লগইন)' : 'Demo Credentials & 1-Click Access'}</span>
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+            {/* Subtle Security & HR Assistance Notice */}
+            <div className="pt-2 border-t border-slate-800/60 text-center">
+              <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
+                <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                <span>
                   {language === 'bn' 
-                    ? 'যেকোনো রোলের কার্যকারিতা পরীক্ষা করতে নিচের কার্ডে ক্লিক করুন' 
-                    : 'Click any role below to test their respective dashboard and approval powers'}
-                </p>
+                    ? 'সুরক্ষিত এনজিও ফিন্যান্সিয়াল ক্লাউড সিস্টেম' 
+                    : 'Encrypted Multi-Branch NGO Financial Cloud'}
+                </span>
               </div>
-              <span className="font-mono text-xs font-bold text-amber-400 bg-amber-950/60 border border-amber-800/40 px-2.5 py-1 rounded-lg">
-                Password = Staff ID
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-              {DEMO_ACCOUNTS.map(demo => (
-                <div
-                  key={demo.staffId}
-                  className={`p-3 rounded-xl border transition-all flex flex-col justify-between space-y-2 ${demo.border}`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono font-bold text-xs bg-black/40 px-2 py-0.5 rounded">
-                        ID: {demo.staffId}
-                      </span>
-                      <span className="text-[10px] font-mono text-slate-300">
-                        Pass: <strong className="text-amber-300 font-bold">{demo.password}</strong>
-                      </span>
-                    </div>
-
-                    <div className="font-bold text-white mt-1.5 text-sm">{demo.name}</div>
-                    <div className="text-[11px] font-semibold text-slate-300">{demo.roleLabel}</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">{demo.tag}</div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin(demo.staffId, demo.password)}
-                    className={`w-full py-1.5 px-3 rounded-lg text-xs font-bold transition-all shadow cursor-pointer flex items-center justify-center gap-1.5 ${demo.btnBg}`}
-                  >
-                    <span>{demo.staffId === '1002' ? 'Super Admin লগইন' : 'লগইন করুন'}</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
+              <p className="text-[10px] text-slate-500 mt-1">
+                {language === 'bn'
+                  ? 'পাসওয়ার্ড ভুলে গেলে বা নতুন অ্যাকাউন্ট অনুমোদনের জন্য এইচআর (মুর্শিদা আক্তার কান্তা)-এর সাথে যোগাযোগ করুন।'
+                  : 'Contact Super Admin / HR (Murshida Akhter Kanta) for password reset or assistance.'}
+              </p>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
   );
 };

@@ -3,7 +3,7 @@ import { User, Branch, Language, UserRole } from '../types';
 import { 
   Users, UserPlus, KeyRound, ShieldAlert, ShieldCheck, 
   Trash2, UserX, UserCheck2, Search, CheckCircle2, 
-  AlertTriangle, Phone, Mail, Building, Building2, X 
+  AlertTriangle, Phone, Mail, Building, Building2, X, Edit3, ArrowRightLeft, Camera 
 } from 'lucide-react';
 
 interface StaffManagementViewProps {
@@ -15,6 +15,9 @@ interface StaffManagementViewProps {
   onRemoveStaff: (staffId: string) => { success: boolean; message: string };
   onToggleStaffStatus: (staffId: string) => { success: boolean; message: string; newStatus: string };
   onResetStaffPassword: (staffId: string, customPass?: string) => { success: boolean; message: string; password: string };
+  onUpdateStaff?: (staffId: string, data: Partial<User>) => { success: boolean; message: string };
+  onTransferStaff?: (staffId: string, targetBranchId: string, newRole?: UserRole, newDesignation?: string, newAssignedUnits?: string[]) => { success: boolean; message: string };
+  onOpenChangeLogo?: () => void;
   onOpenPayrollModal?: () => void;
   language?: Language;
 }
@@ -28,6 +31,9 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
   onRemoveStaff,
   onToggleStaffStatus,
   onResetStaffPassword,
+  onUpdateStaff,
+  onTransferStaff,
+  onOpenChangeLogo,
   onOpenPayrollModal,
   language = 'bn',
 }) => {
@@ -43,6 +49,15 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
 
   // Confirm delete modal state
   const [deleteModalStaff, setDeleteModalStaff] = useState<User | null>(null);
+
+  // Transfer & Edit Staff Modal State (area change, role change, info correction)
+  const [editModalStaff, setEditModalStaff] = useState<User | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDesignation, setEditDesignation] = useState('');
+  const [editRole, setEditRole] = useState<UserRole>('BRANCH_REP');
+  const [editBranchId, setEditBranchId] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editEmail, setEditEmail] = useState('');
 
   // New Staff Form State
   const [newStaffId, setNewStaffId] = useState('');
@@ -132,6 +147,64 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
     }
   };
 
+  const handleOpenEditModal = (staff: User) => {
+    setEditModalStaff(staff);
+    setEditName(staff.name);
+    setEditDesignation(staff.designation);
+    setEditRole(staff.role);
+    setEditBranchId(staff.branchId || branches[0]?.id || 'br-kamalapur');
+    setEditPhone(staff.phone || '');
+    setEditEmail(staff.email || '');
+  };
+
+  const handleSaveEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editModalStaff) return;
+
+    const selectedBranchObj = branches.find(b => b.id === editBranchId);
+    const branchName = editRole === 'BRANCH_REP' ? (selectedBranchObj?.name || 'Branch') : undefined;
+    const branchId = editRole === 'BRANCH_REP' ? editBranchId : undefined;
+
+    if (onTransferStaff && (editModalStaff.branchId !== branchId || editModalStaff.role !== editRole || editModalStaff.designation !== editDesignation)) {
+      const res = onTransferStaff(
+        editModalStaff.staffId,
+        branchId || 'br-kamalapur',
+        editRole,
+        editDesignation
+      );
+      if (res && res.success) {
+        if (onUpdateStaff) {
+          onUpdateStaff(editModalStaff.staffId, {
+            name: editName.trim(),
+            phone: editPhone.trim(),
+            email: editEmail.trim(),
+          });
+        }
+        setActionAlert({ type: 'success', text: res.message });
+        setEditModalStaff(null);
+        return;
+      }
+    }
+
+    if (onUpdateStaff) {
+      const res = onUpdateStaff(editModalStaff.staffId, {
+        name: editName.trim(),
+        designation: editDesignation.trim(),
+        role: editRole,
+        branchId,
+        branchName,
+        phone: editPhone.trim(),
+        email: editEmail.trim(),
+      });
+      if (res.success) {
+        setActionAlert({ type: 'success', text: res.message });
+        setEditModalStaff(null);
+      } else {
+        setActionAlert({ type: 'error', text: res.message });
+      }
+    }
+  };
+
   const getRoleBadge = (role: UserRole) => {
     switch (role) {
       case 'SUPER_ADMIN':
@@ -194,6 +267,17 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-3 shrink-0">
+            {onOpenChangeLogo && (
+              <button
+                type="button"
+                onClick={onOpenChangeLogo}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-950/80 hover:bg-purple-900 text-purple-200 font-bold text-xs border border-purple-700/70 shadow-md transition-all cursor-pointer"
+                title="সংস্থার লোগো পরিবর্তন ও আপডেট করুন (Change Organization Logo)"
+              >
+                <Camera className="w-4 h-4 text-purple-400" />
+                <span>{language === 'bn' ? 'সংস্থার লোগো পরিবর্তন' : 'Change Org Logo'}</span>
+              </button>
+            )}
             {onOpenPayrollModal && (
               <button
                 type="button"
@@ -376,6 +460,16 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
                       {/* Actions for Super Admin */}
                       <td className="py-3 px-3 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* 0. Edit / Transfer Staff (Area/Branch Change & Role/Access Change) */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditModal(user)}
+                            title="শাখা বদলি, এলাকা পরিবর্তন ও পদবি/এক্সেস সংশোধন (Transfer / Edit Staff)"
+                            className="p-1.5 text-sky-400 hover:text-sky-300 hover:bg-slate-800 rounded-lg border border-transparent hover:border-sky-700/50 transition-colors cursor-pointer"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+
                           {/* 1. Reset Password Button */}
                           <button
                             type="button"
@@ -684,6 +778,155 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
                 হ্যাঁ, সংস্থাতথ্য হতে বাদ দিন
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit / Transfer Staff Modal (Area change, access change, designation, contact info) */}
+      {editModalStaff && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden my-6">
+            <div className="px-6 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <ArrowRightLeft className="w-5 h-5 text-sky-400" />
+                <div>
+                  <h3 className="text-base font-bold text-white">
+                    {language === 'bn' ? 'কর্মী বদলি, এলাকা ও এক্সেস পরিবর্তন' : 'Transfer Staff & Update Access'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Staff ID: {editModalStaff.staffId} · {editModalStaff.name}
+                  </p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setEditModalStaff(null)} 
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditSubmit} className="p-6 space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">
+                    {language === 'bn' ? 'কর্মীর পূর্ণ নাম' : 'Full Name'} *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-medium focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">
+                    {language === 'bn' ? 'পদবী (Designation)' : 'Designation'} *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editDesignation}
+                    onChange={e => setEditDesignation(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-medium focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {/* System Role & Access */}
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">
+                    {language === 'bn' ? 'সিস্টেম এক্সেস ও রোল' : 'System Role & Access'} *
+                  </label>
+                  <select
+                    value={editRole}
+                    onChange={e => setEditRole(e.target.value as UserRole)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-medium focus:outline-none focus:border-sky-500 cursor-pointer"
+                  >
+                    <option value="BRANCH_REP">Branch Field Accounts Rep (মাঠ পর্যায়)</option>
+                    <option value="CENTRAL_ACCOUNTS">Central Accounts Team (প্রধান হিসাব)</option>
+                    <option value="MANAGEMENT">Executive Management (নির্বাহী)</option>
+                    <option value="SUPER_ADMIN">Super Admin (পরিচালক)</option>
+                  </select>
+                </div>
+
+                {/* Branch / Operational Area */}
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">
+                    {language === 'bn' ? 'নিযুক্ত শাখা / কর্ম এলাকা' : 'Branch / Operational Area'} *
+                  </label>
+                  <select
+                    value={editBranchId}
+                    onChange={e => setEditBranchId(e.target.value)}
+                    disabled={editRole !== 'BRANCH_REP'}
+                    className={`w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-medium focus:outline-none focus:border-sky-500 cursor-pointer ${
+                      editRole !== 'BRANCH_REP' ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {branches.map(b => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} ({b.code})
+                      </option>
+                    ))}
+                  </select>
+                  {editRole !== 'BRANCH_REP' && (
+                    <span className="text-[10px] text-slate-500 mt-0.5 block">
+                      {language === 'bn' ? 'প্রধান কার্যালয়ের কর্মীদের জন্য প্রযোজ্য নয়' : 'Central staff belongs to Head Office'}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">
+                    {language === 'bn' ? 'যোগাযোগের মোবাইল নম্বর' : 'Phone Number'}
+                  </label>
+                  <input
+                    type="text"
+                    value={editPhone}
+                    onChange={e => setEditPhone(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-medium focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">
+                    {language === 'bn' ? 'অফিসিয়াল ইমেইল' : 'Email Address'}
+                  </label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={e => setEditEmail(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-medium focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-sky-950/40 border border-sky-800/50 text-[11px] text-sky-200 leading-relaxed">
+                ℹ️ {language === 'bn' 
+                  ? 'শাখা বা এক্সেস পরিবর্তন করা হলে কর্মী পরবর্তী লগইনে সরাসরি তার নতুন শাখা ও অনুমতি অনুযায়ী কাজ করতে পারবেন। সকল তথ্য ক্লাউড ফায়ারবেসে তাৎক্ষণিক সংরক্ষিত হবে।'
+                  : 'Branch or role modifications take effect immediately across all devices with real-time Firebase sync.'}
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditModalStaff(null)}
+                  className="px-4 py-2 text-slate-400 hover:text-white cursor-pointer"
+                >
+                  {language === 'bn' ? 'বাতিল' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl shadow-lg shadow-sky-950/60 cursor-pointer"
+                >
+                  {language === 'bn' ? 'তথ্য হালনাগাদ ও বদলি নিশ্চিত করুন' : 'Save Changes & Update Staff'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

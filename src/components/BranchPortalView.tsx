@@ -38,7 +38,19 @@ export const BranchPortalView: React.FC<BranchPortalViewProps> = ({
   onNavigateTab,
   language,
 }) => {
-  const effectiveBranch = currentBranch || branches.find(b => b.id === 'br-kamalapur') || branches[0];
+  const userAssignedBranchIds = currentUser.assignedBranchIds && currentUser.assignedBranchIds.length > 0
+    ? currentUser.assignedBranchIds
+    : (currentUser.branchId ? [currentUser.branchId] : [branches[0]?.id || 'br-airport-sus']);
+
+  const assignedBranches = branches.filter(b => userAssignedBranchIds.includes(b.id));
+  const isCentralStaff = currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'MANAGEMENT' || currentUser.role === 'CENTRAL_ACCOUNTS';
+  const availableBranches = isCentralStaff ? branches : (assignedBranches.length > 0 ? assignedBranches : branches);
+
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(() => {
+    return currentBranch?.id || userAssignedBranchIds[0] || branches[0]?.id || '';
+  });
+
+  const effectiveBranch = branches.find(b => b.id === selectedBranchId) || currentBranch || branches[0];
   const t = (key: Parameters<typeof getTranslation>[1]) => getTranslation(language, key);
 
   // Petty cash form state
@@ -79,6 +91,60 @@ export const BranchPortalView: React.FC<BranchPortalViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Multi-Branch Workspace Switcher Bar */}
+      {availableBranches.length > 1 && (
+        <div className="bg-slate-900/90 border border-amber-900/40 rounded-2xl p-4 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="p-2.5 rounded-xl bg-amber-950/80 text-amber-400 border border-amber-800/60 shrink-0">
+              <Building2 className="w-5 h-5" />
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white">
+                  {language === 'bn' ? 'কার্যরত শাখা পরিবর্তন (Active Branch Workspace)' : 'Active Branch Workspace'}
+                </h3>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800">
+                  {isCentralStaff ? `${branches.length}টি শাখা` : `${availableBranches.length}টি শাখার যৌথ দায়িত্ব`}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {language === 'bn' 
+                  ? 'আপনি একাধিক শাখার দায়িত্বে আছেন। যে শাখার ভাউচার ও পেটি ক্যাশ দেখতে চান ক্লিক করুন:' 
+                  : 'Select which assigned branch workspace you want to view and manage:'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {availableBranches.map(b => {
+              const isActive = b.id === effectiveBranch?.id;
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedBranchId(b.id);
+                    setOpeningBalance(b.currentCashFloat || 40000);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    isActive
+                      ? 'bg-red-600 text-white shadow-lg shadow-red-950/70 border border-red-500 scale-105'
+                      : 'bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700/80'
+                  }`}
+                >
+                  <span>{b.name}</span>
+                  <span className={`text-[10px] font-mono px-1 rounded ${
+                    isActive ? 'bg-red-800 text-white' : 'bg-slate-900 text-slate-400'
+                  }`}>
+                    {b.code}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Branch Header with Staff ID & Sub-Units */}
       <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -149,7 +215,7 @@ export const BranchPortalView: React.FC<BranchPortalViewProps> = ({
               <Wallet className="w-4 h-4 text-amber-400" />
             </div>
             <div className="text-2xl font-bold font-mono text-amber-400 mt-2">
-              ৳ {effectiveBranch?.currentCashFloat.toLocaleString()}
+              ৳ {(effectiveBranch?.currentCashFloat ?? 0).toLocaleString()}
             </div>
             <button
               onClick={() => {
@@ -168,7 +234,7 @@ export const BranchPortalView: React.FC<BranchPortalViewProps> = ({
               <Building2 className="w-4 h-4 text-sky-400" />
             </div>
             <div className="text-2xl font-bold font-mono text-sky-400 mt-2">
-              ৳ {effectiveBranch?.bankBalance.toLocaleString()}
+              ৳ {(effectiveBranch?.bankBalance ?? 0).toLocaleString()}
             </div>
             <div className="mt-3 text-[11px] text-slate-500">
               {language === 'bn' ? 'সেন্ট্রাল অ্যাকাউন্টস তত্ত্বাবধান' : 'Central Accounts Supervised'}
@@ -181,11 +247,11 @@ export const BranchPortalView: React.FC<BranchPortalViewProps> = ({
               <ArrowDownRight className="w-4 h-4 text-emerald-400" />
             </div>
             <div className="text-2xl font-bold font-mono text-white mt-2">
-              ৳ {effectiveBranch?.totalSpent.toLocaleString()}
+              ৳ {(effectiveBranch?.totalSpent ?? 0).toLocaleString()}
             </div>
             <div className="mt-3 text-[11px] text-slate-400">
               {language === 'bn' ? 'বরাদ্দকৃত সীমা:' : 'Allocated Ceiling:'}{' '}
-              <span className="font-mono text-slate-300">৳{effectiveBranch?.totalAllocated.toLocaleString()}</span>
+              <span className="font-mono text-slate-300">৳{(effectiveBranch?.totalAllocated ?? 0).toLocaleString()}</span>
             </div>
           </div>
         </div>
@@ -224,10 +290,10 @@ export const BranchPortalView: React.FC<BranchPortalViewProps> = ({
                     {allocation && (
                       <div className="mt-3 pt-2 border-t border-slate-800 flex justify-between text-xs font-mono">
                         <span className="text-slate-400">
-                          {language === 'bn' ? 'বরাদ্দ:' : 'Ceiling:'} ৳{allocation.allocatedAmount.toLocaleString()}
+                          {language === 'bn' ? 'বরাদ্দ:' : 'Ceiling:'} ৳{(allocation.allocatedAmount ?? 0).toLocaleString()}
                         </span>
                         <span className="text-emerald-400">
-                          {language === 'bn' ? 'খরচ:' : 'Spent:'} ৳{allocation.spentAmount.toLocaleString()}
+                          {language === 'bn' ? 'খরচ:' : 'Spent:'} ৳{(allocation.spentAmount ?? 0).toLocaleString()}
                         </span>
                       </div>
                     )}
@@ -270,12 +336,12 @@ export const BranchPortalView: React.FC<BranchPortalViewProps> = ({
                 <div key={l.id} className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl space-y-1">
                   <div className="flex justify-between items-center font-mono">
                     <span className="text-slate-400">{l.date}</span>
-                    <span className="text-amber-400 font-bold">Closing: ৳{l.closingBalance.toLocaleString()}</span>
+                    <span className="text-amber-400 font-bold">Closing: ৳{(l.closingBalance ?? 0).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-[11px] text-slate-500">
-                    <span>Opening: ৳{l.openingBalance.toLocaleString()}</span>
-                    <span>Received: +৳{l.totalReceived.toLocaleString()}</span>
-                    <span>Spent: -৳{l.totalSpent.toLocaleString()}</span>
+                    <span>Opening: ৳{(l.openingBalance ?? 0).toLocaleString()}</span>
+                    <span>Received: +৳{(l.totalReceived ?? 0).toLocaleString()}</span>
+                    <span>Spent: -৳{(l.totalSpent ?? 0).toLocaleString()}</span>
                   </div>
                   {l.notes && <div className="text-[11px] text-slate-400 italic mt-1">"{l.notes}"</div>}
                 </div>
@@ -341,7 +407,7 @@ export const BranchPortalView: React.FC<BranchPortalViewProps> = ({
                     </td>
                     <td className="py-3 px-3 text-slate-400">{v.projectName || 'Core Ops'}</td>
                     <td className="py-3 px-3 text-right font-mono font-bold text-white">
-                      ৳ {v.amount.toLocaleString()}
+                      ৳ {(Number(v.amount) || 0).toLocaleString()}
                     </td>
                     <td className="py-3 px-3 text-center">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${

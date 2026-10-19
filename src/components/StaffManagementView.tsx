@@ -16,7 +16,15 @@ interface StaffManagementViewProps {
   onToggleStaffStatus: (staffId: string) => { success: boolean; message: string; newStatus: string };
   onResetStaffPassword: (staffId: string, customPass?: string) => { success: boolean; message: string; password: string };
   onUpdateStaff?: (staffId: string, data: Partial<User>) => { success: boolean; message: string };
-  onTransferStaff?: (staffId: string, targetBranchId: string, newRole?: UserRole, newDesignation?: string, newAssignedUnits?: string[]) => { success: boolean; message: string };
+  onTransferStaff?: (
+    staffId: string, 
+    targetBranchId: string, 
+    newRole?: UserRole, 
+    newDesignation?: string, 
+    newAssignedUnits?: string[],
+    newAssignedBranchIds?: string[],
+    newAssignedBranchNames?: string[]
+  ) => { success: boolean; message: string };
   onOpenChangeLogo?: () => void;
   onOpenPayrollModal?: () => void;
   language?: Language;
@@ -50,12 +58,13 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
   // Confirm delete modal state
   const [deleteModalStaff, setDeleteModalStaff] = useState<User | null>(null);
 
-  // Transfer & Edit Staff Modal State (area change, role change, info correction)
+  // Transfer & Edit Staff Modal State (area change, role change, info correction & multi-branch access)
   const [editModalStaff, setEditModalStaff] = useState<User | null>(null);
   const [editName, setEditName] = useState('');
   const [editDesignation, setEditDesignation] = useState('');
   const [editRole, setEditRole] = useState<UserRole>('BRANCH_REP');
   const [editBranchId, setEditBranchId] = useState('');
+  const [editAssignedBranchIds, setEditAssignedBranchIds] = useState<string[]>([]);
   const [editPhone, setEditPhone] = useState('');
   const [editEmail, setEditEmail] = useState('');
 
@@ -65,7 +74,8 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
   const [newEmail, setNewEmail] = useState('');
   const [newDesignation, setNewDesignation] = useState('Social Mobilizer');
   const [newRole, setNewRole] = useState<UserRole>('BRANCH_REP');
-  const [newBranchId, setNewBranchId] = useState(branches[0]?.id || 'br-kamalapur');
+  const [newBranchId, setNewBranchId] = useState(branches[0]?.id || 'br-airport-sus');
+  const [newAssignedBranchIds, setNewAssignedBranchIds] = useState<string[]>([]);
   const [newPhone, setNewPhone] = useState('+880 1711-');
   const [newPass, setNewPass] = useState('leedo');
 
@@ -75,10 +85,13 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
       u.staffId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.designation.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (u.branchName && u.branchName.toLowerCase().includes(searchTerm.toLowerCase()));
+      (u.branchName && u.branchName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (u.assignedBranchNames && u.assignedBranchNames.some(b => b.toLowerCase().includes(searchTerm.toLowerCase())));
 
     const matchesRole = selectedRole === 'ALL' || u.role === selectedRole;
-    const matchesBranch = selectedBranch === 'ALL' || u.branchId === selectedBranch;
+    const matchesBranch = selectedBranch === 'ALL' || 
+      u.branchId === selectedBranch ||
+      (u.assignedBranchIds && u.assignedBranchIds.includes(selectedBranch));
 
     return matchesSearch && matchesRole && matchesBranch;
   });
@@ -87,7 +100,14 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
     e.preventDefault();
     if (!newStaffId.trim() || !newName.trim()) return;
 
-    const selectedBranchObj = branches.find(b => b.id === newBranchId);
+    // Multi-branch assignment support (2 to 3 branches)
+    const initialAssignedIds = newRole === 'BRANCH_REP' 
+      ? (newAssignedBranchIds.length > 0 ? newAssignedBranchIds : [newBranchId])
+      : ['br-head-office'];
+
+    const initialAssignedNames = initialAssignedIds.map(bid => branches.find(b => b.id === bid)?.name || bid);
+    const primaryBranchId = initialAssignedIds[0] || newBranchId;
+    const selectedBranchObj = branches.find(b => b.id === primaryBranchId);
 
     const res = onAddStaff({
       staffId: newStaffId.trim(),
@@ -95,8 +115,10 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
       email: newEmail.trim() || `${newName.toLowerCase().replace(/\s+/g, '')}@leedo.org`,
       designation: newDesignation,
       role: newRole,
-      branchId: newRole === 'BRANCH_REP' ? newBranchId : undefined,
+      branchId: newRole === 'BRANCH_REP' ? primaryBranchId : undefined,
       branchName: newRole === 'BRANCH_REP' ? (selectedBranchObj?.name || 'Branch') : undefined,
+      assignedBranchIds: initialAssignedIds,
+      assignedBranchNames: initialAssignedNames,
       phone: newPhone.trim(),
       password: newPass || 'leedo',
       status: 'ACTIVE',
@@ -110,6 +132,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
       setNewStaffId('');
       setNewName('');
       setNewEmail('');
+      setNewAssignedBranchIds([]);
       setNewPhone('+880 1711-');
     } else {
       setActionAlert({ type: 'error', text: res.message });
@@ -152,7 +175,12 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
     setEditName(staff.name);
     setEditDesignation(staff.designation);
     setEditRole(staff.role);
-    setEditBranchId(staff.branchId || branches[0]?.id || 'br-kamalapur');
+    const initialBranchId = staff.branchId || branches[0]?.id || 'br-airport-sus';
+    setEditBranchId(initialBranchId);
+    const initialAssigned = staff.assignedBranchIds && staff.assignedBranchIds.length > 0
+      ? staff.assignedBranchIds
+      : [initialBranchId];
+    setEditAssignedBranchIds(initialAssigned);
     setEditPhone(staff.phone || '');
     setEditEmail(staff.email || '');
   };
@@ -161,21 +189,37 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
     e.preventDefault();
     if (!editModalStaff) return;
 
-    const selectedBranchObj = branches.find(b => b.id === editBranchId);
-    const branchName = editRole === 'BRANCH_REP' ? (selectedBranchObj?.name || 'Branch') : undefined;
-    const branchId = editRole === 'BRANCH_REP' ? editBranchId : undefined;
+    const currentBranchIds = editRole === 'BRANCH_REP'
+      ? (editAssignedBranchIds.length > 0 ? editAssignedBranchIds : [editBranchId || branches[0]?.id || 'br-airport-sus'])
+      : ['br-head-office'];
 
-    if (onTransferStaff && (editModalStaff.branchId !== branchId || editModalStaff.role !== editRole || editModalStaff.designation !== editDesignation)) {
+    const assignedBranchNames = currentBranchIds.map(bid => branches.find(b => b.id === bid)?.name || bid);
+    const primaryBranchId = currentBranchIds.includes(editBranchId) ? editBranchId : currentBranchIds[0];
+    const selectedBranchObj = branches.find(b => b.id === primaryBranchId);
+    const branchName = editRole === 'BRANCH_REP' ? (selectedBranchObj?.name || assignedBranchNames[0] || 'Branch') : undefined;
+    const branchId = editRole === 'BRANCH_REP' ? primaryBranchId : undefined;
+
+    if (onTransferStaff) {
       const res = onTransferStaff(
         editModalStaff.staffId,
-        branchId || 'br-kamalapur',
+        branchId || 'br-head-office',
         editRole,
-        editDesignation
+        editDesignation,
+        editModalStaff.assignedUnits,
+        currentBranchIds,
+        assignedBranchNames
       );
+
       if (res && res.success) {
         if (onUpdateStaff) {
           onUpdateStaff(editModalStaff.staffId, {
             name: editName.trim(),
+            designation: editDesignation.trim(),
+            role: editRole,
+            branchId,
+            branchName,
+            assignedBranchIds: currentBranchIds,
+            assignedBranchNames: assignedBranchNames,
             phone: editPhone.trim(),
             email: editEmail.trim(),
           });
@@ -193,6 +237,8 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
         role: editRole,
         branchId,
         branchName,
+        assignedBranchIds: currentBranchIds,
+        assignedBranchNames: assignedBranchNames,
         phone: editPhone.trim(),
         email: editEmail.trim(),
       });
@@ -433,11 +479,35 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
                         </span>
                       </td>
 
-                      {/* Branch */}
+                      {/* Branch & Multi-Branch Access */}
                       <td className="py-3 px-3">
-                        <div className="text-slate-300 font-medium">
-                          {user.branchName || 'Central Head Office'}
-                        </div>
+                        {user.assignedBranchNames && user.assignedBranchNames.length > 1 ? (
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-800/60 font-mono">
+                                {user.assignedBranchNames.length}টি শাখার যৌথ দায়িত্ব
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-1 max-w-xs">
+                              {user.assignedBranchNames.map(bName => (
+                                <span 
+                                  key={bName} 
+                                  className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                                    bName === user.branchName
+                                      ? 'bg-red-950/60 text-red-200 border-red-800 font-bold'
+                                      : 'bg-slate-800 text-slate-300 border-slate-700'
+                                  }`}
+                                >
+                                  {bName}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-slate-300 font-medium">
+                            {user.branchName || 'Head office'}
+                          </div>
+                        )}
                       </td>
 
                       {/* Contact */}
@@ -599,11 +669,17 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
                 </div>
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">
-                    {language === 'bn' ? 'শাখা / পোস্টিং (Branch)' : 'Assigned Branch'}
+                    {language === 'bn' ? 'মূল শাখা / পোস্টিং (Primary Branch)' : 'Primary Branch'}
                   </label>
                   <select
                     value={newBranchId}
-                    onChange={e => setNewBranchId(e.target.value)}
+                    onChange={e => {
+                      const bid = e.target.value;
+                      setNewBranchId(bid);
+                      if (!newAssignedBranchIds.includes(bid)) {
+                        setNewAssignedBranchIds(prev => [bid, ...prev.filter(id => id !== bid)]);
+                      }
+                    }}
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-red-500"
                   >
                     {branches.map(b => (
@@ -612,6 +688,69 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
                   </select>
                 </div>
               </div>
+
+              {/* Multi-Branch Assignment (একই সাথে ২-৩টি শাখার দায়িত্ব প্রদান) */}
+              {newRole === 'BRANCH_REP' && (
+                <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-amber-400" />
+                        {language === 'bn' 
+                          ? 'বহু-শাখা এক্সেস ও দায়িত্ব (২ বা ৩টি শাখার দায়িত্ব দিতে টিক দিন)' 
+                          : 'Assign Multiple Branches (2 or 3 branches)'}
+                      </span>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        {language === 'bn'
+                          ? 'কর্মী যে যে শাখার দায়িত্ব পালন করবেন, সেগুলোতে টিক দিন:'
+                          : 'Select all branches this staff will have access to manage:'}
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-950/80 text-amber-300 border border-amber-800">
+                      {(newAssignedBranchIds.length > 0 ? newAssignedBranchIds : [newBranchId]).length}টি শাখা
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-36 overflow-y-auto pr-1">
+                    {branches.map(b => {
+                      const effectiveList = newAssignedBranchIds.length > 0 ? newAssignedBranchIds : [newBranchId];
+                      const isChecked = effectiveList.includes(b.id);
+                      return (
+                        <label
+                          key={b.id}
+                          className={`flex items-center gap-1.5 p-1.5 rounded-lg border text-[11px] cursor-pointer transition-all select-none ${
+                            isChecked
+                              ? 'bg-red-950/40 border-red-700 text-white font-medium'
+                              : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setNewAssignedBranchIds(prev => {
+                                  const base = prev.length > 0 ? prev : [newBranchId];
+                                  return [...new Set([...base, b.id])];
+                                });
+                              } else {
+                                const current = newAssignedBranchIds.length > 0 ? newAssignedBranchIds : [newBranchId];
+                                if (current.length > 1) {
+                                  const updated = current.filter(id => id !== b.id);
+                                  setNewAssignedBranchIds(updated);
+                                  if (newBranchId === b.id) setNewBranchId(updated[0]);
+                                }
+                              }
+                            }}
+                            className="rounded border-slate-700 text-red-600 focus:ring-0 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
+                          />
+                          <span className="truncate leading-tight">{b.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -860,7 +999,13 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
                   </label>
                   <select
                     value={editBranchId}
-                    onChange={e => setEditBranchId(e.target.value)}
+                    onChange={e => {
+                      const bid = e.target.value;
+                      setEditBranchId(bid);
+                      if (!editAssignedBranchIds.includes(bid)) {
+                        setEditAssignedBranchIds(prev => [bid, ...prev.filter(id => id !== bid)]);
+                      }
+                    }}
                     disabled={editRole !== 'BRANCH_REP'}
                     className={`w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-medium focus:outline-none focus:border-sky-500 cursor-pointer ${
                       editRole !== 'BRANCH_REP' ? 'opacity-50 cursor-not-allowed' : ''
@@ -879,6 +1024,87 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({
                   )}
                 </div>
               </div>
+
+              {/* Multi-Branch Responsibility Assignment (বহু-শাখা এক্সেস ও দায়িত্ব) */}
+              {editRole === 'BRANCH_REP' && (
+                <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-amber-400" />
+                        {language === 'bn' 
+                          ? 'বহু-শাখা এক্সেস ও দায়িত্ব (একই সাথে ২-৩টি শাখার দায়িত্ব দিতে টিক দিন)' 
+                          : 'Multi-Branch Access (Assign 2 to 3 branches)'}
+                      </span>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        {language === 'bn' 
+                          ? 'কর্মী যে যে শাখার দায়িত্ব পালন করবেন, সেগুলোতে টিক চিহ্ন দিন। কর্মী এই সকল শাখার ভাউচার ও রিকুইজিশন তৈরি করতে পারবেন:' 
+                          : 'Select all branches this staff member is authorized to access:'}
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-950/80 text-amber-300 border border-amber-800">
+                      {editAssignedBranchIds.length} {language === 'bn' ? 'টি শাখা নির্বাচিত' : 'Branches'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-44 overflow-y-auto pr-1">
+                    {branches.map(b => {
+                      const isChecked = editAssignedBranchIds.includes(b.id);
+                      return (
+                        <label
+                          key={b.id}
+                          className={`flex items-center gap-2 p-2 rounded-lg border text-xs cursor-pointer transition-all select-none ${
+                            isChecked
+                              ? 'bg-red-950/40 border-red-700/80 text-white font-medium shadow-sm'
+                              : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setEditAssignedBranchIds(prev => [...prev, b.id]);
+                                if (!editBranchId) setEditBranchId(b.id);
+                              } else {
+                                if (editAssignedBranchIds.length > 1) {
+                                  const updated = editAssignedBranchIds.filter(id => id !== b.id);
+                                  setEditAssignedBranchIds(updated);
+                                  if (editBranchId === b.id) setEditBranchId(updated[0]);
+                                }
+                              }
+                            }}
+                            className="rounded border-slate-700 text-red-600 focus:ring-0 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
+                          />
+                          <div className="min-w-0">
+                            <span className="block truncate text-[11px] leading-tight">{b.name}</span>
+                            <span className="text-[9px] font-mono text-slate-500 block">{b.code}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  {/* Primary Operating Branch Selector */}
+                  {editAssignedBranchIds.length > 1 && (
+                    <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                      <span className="text-slate-400 font-medium">
+                        {language === 'bn' ? 'ডিফল্ট সক্রিয় শাখা (Primary Branch):' : 'Primary Active Branch:'}
+                      </span>
+                      <select
+                        value={editBranchId}
+                        onChange={e => setEditBranchId(e.target.value)}
+                        className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200 font-bold focus:outline-none"
+                      >
+                        {editAssignedBranchIds.map(bid => {
+                          const b = branches.find(item => item.id === bid);
+                          return <option key={bid} value={bid}>{b?.name || bid}</option>;
+                        })}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>

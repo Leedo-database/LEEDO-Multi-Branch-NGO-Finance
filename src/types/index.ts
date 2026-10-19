@@ -10,10 +10,12 @@ export interface User {
   password?: string; // Stored securely for authentication
   mustChangePassword?: boolean; // Flag indicating the user must change their password after login
   role: UserRole;
-  branchId?: string; // For BRANCH_REP
+  branchId?: string; // Primary branch for BRANCH_REP
   branchName?: string;
+  assignedBranchIds?: string[]; // Multi-branch access when a staff member manages 2 or 3 branches
+  assignedBranchNames?: string[]; // Multi-branch names list
   designation: string;
-  assignedUnits?: string[]; // e.g. Kamalapur: ["SUS (School Under the Sky)", "Shelter"]
+  assignedUnits?: string[]; // e.g. ["SUS (School Under the Sky)", "Shelter"]
   phone?: string;
   status?: 'ACTIVE' | 'INACTIVE';
   joinedDate?: string;

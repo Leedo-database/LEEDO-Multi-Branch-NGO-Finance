@@ -45,14 +45,15 @@ export default function App() {
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState<boolean>(false);
   const [isChangeLogoOpen, setIsChangeLogoOpen] = useState<boolean>(false);
 
-  // Mandatory password change check right after login or HR reset
+  // Password change prompt - only if HR explicitly reset password and set mustChangePassword: true
   const isMandatoryPasswordChange = Boolean(
-    store.isLoggedIn && 
-    (store.currentUser.mustChangePassword || store.currentUser.password === store.currentUser.staffId)
+    store.isLoggedIn && store.currentUser.mustChangePassword
   );
 
-  // Enforce role-based tab access whenever user changes
+  // Enforce role-based tab access whenever user or login state changes
   useEffect(() => {
+    if (!store.isLoggedIn) return;
+
     if (store.isBranchRep) {
       const allowed = ['branch-portal', 'fund-requests', 'sub-branches', 'profile'];
       if (!allowed.includes(currentTab)) {
@@ -63,8 +64,13 @@ export default function App() {
       if (!allowed.includes(currentTab)) {
         setCurrentTab('fund-requests');
       }
+    } else {
+      const allowed = ['dashboard', 'staff-management', 'fund-requests', 'vouchers', 'projects', 'sub-branches', 'reports', 'profile'];
+      if (!allowed.includes(currentTab)) {
+        setCurrentTab('dashboard');
+      }
     }
-  }, [store.currentUser.id, store.currentUser.role]);
+  }, [store.isLoggedIn, store.currentUser.id, store.currentUser.role]);
 
   // If user is logged out, show the dedicated login screen with demo passwords
   if (!store.isLoggedIn) {
@@ -73,7 +79,27 @@ export default function App() {
         isOpen={true}
         isStandalone={true}
         users={store.users}
-        onLogin={store.loginWithCredentials}
+        onLogin={(identifier, pass) => {
+          const res = store.loginWithCredentials(identifier, pass);
+          if (res.success) {
+            const cleanId = identifier.trim().toLowerCase();
+            const user = store.users.find(u => 
+              u.staffId.toLowerCase() === cleanId || 
+              u.email.toLowerCase() === cleanId ||
+              (u.staffId === '1002' && (cleanId === 'hr.leedo2000@gmail.com' || cleanId === 'kanta@leedo.org' || cleanId === 'hr'))
+            );
+            if (user) {
+              if (user.role === 'BRANCH_REP') {
+                setCurrentTab('branch-portal');
+              } else if (user.role === 'CENTRAL_ACCOUNTS') {
+                setCurrentTab('fund-requests');
+              } else {
+                setCurrentTab('dashboard');
+              }
+            }
+          }
+          return res;
+        }}
         language={store.language}
         onLanguageChange={store.setLanguage}
         customLogoUrl={store.customLogoUrl}
@@ -147,6 +173,46 @@ export default function App() {
             />
           )}
 
+          {/* Automatic Fallback for Field/Accounts if on dashboard tab */}
+          {currentTab === 'dashboard' && !store.isManagement && (
+            store.isBranchRep ? (
+              <BranchPortalView
+                currentUser={store.currentUser}
+                branches={store.branches}
+                currentBranch={currentBranch}
+                subBranches={store.subBranches}
+                fundRequests={store.visibleFundRequests}
+                branchProjects={store.visibleProjects}
+                branchVouchers={store.branchExpensesOnly}
+                pettyCashLogs={store.pettyCashLogs}
+                onOpenNewVoucher={() => setIsVoucherModalOpen(true)}
+                onRecordPettyCash={store.addPettyCashLog}
+                onSelectPrintVoucher={setSelectedPrintVoucher}
+                onNavigateTab={setCurrentTab}
+                language={store.language}
+              />
+            ) : (
+              <FundRequestsView
+                fundRequests={store.visibleFundRequests}
+                branches={store.branches}
+                subBranches={store.subBranches}
+                projects={store.projects}
+                currentUser={store.currentUser}
+                language={store.language}
+                isBranchRep={store.isBranchRep}
+                isCentralAccounts={store.isCentralAccounts}
+                isManagement={store.isManagement}
+                onAddFundRequest={store.addFundRequest}
+                onVerifyByAccounts={store.verifyFundRequestByAccounts}
+                onApproveByManagement={store.approveFundRequestByManagement}
+                onReject={store.rejectFundRequest}
+                onDisburse={store.disburseFundRequest}
+                onEditFundRequest={store.editFundRequest}
+                onDeleteFundRequest={store.deleteFundRequest}
+              />
+            )
+          )}
+
           {/* Super Admin & Management Staff Directory, Access Control, Password Reset, Onboarding & Removal */}
           {currentTab === 'staff-management' && (store.isSuperAdmin || store.isManagement) && (
             <StaffManagementView
@@ -193,9 +259,12 @@ export default function App() {
             <SubBranchesView
               branches={store.branches}
               subBranches={store.subBranches}
+              users={store.users}
               currentUser={store.currentUser}
               isBranchRep={store.isBranchRep}
               onAddSubBranch={store.addSubBranch}
+              onResetOfficialBranches={store.resetToOfficialBranches}
+              onNavigateTab={setCurrentTab}
             />
           )}
 

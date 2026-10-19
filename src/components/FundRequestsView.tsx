@@ -308,7 +308,7 @@ export const FundRequestsView: React.FC<FundRequestsViewProps> = ({
             </span>
             <Wallet className="w-4 h-4 text-pink-400" />
           </div>
-          <div className="text-2xl font-black text-white mt-2 font-mono">৳ {totalSanctioned.toLocaleString()}</div>
+          <div className="text-2xl font-black text-white mt-2 font-mono">৳ {(Number(totalSanctioned) || 0).toLocaleString()}</div>
         </div>
       </div>
 
@@ -566,7 +566,7 @@ export const FundRequestsView: React.FC<FundRequestsViewProps> = ({
                       {language === 'bn' ? 'দাবিকৃত ফান্ড' : 'Requested Amount'}
                     </span>
                     <span className="text-xl font-black text-white font-mono">
-                      ৳ {req.amount.toLocaleString()}
+                      ৳ {(Number(req.amount) || 0).toLocaleString()}
                     </span>
                   </div>
 
@@ -1134,7 +1134,7 @@ export const FundRequestsView: React.FC<FundRequestsViewProps> = ({
             </h3>
 
             <div className="text-xs text-slate-300 bg-slate-950 p-3 rounded-lg border border-slate-800">
-              <div className="font-bold text-white">{actingRequest.requestNumber} - ৳ {actingRequest.amount.toLocaleString()}</div>
+              <div className="font-bold text-white">{actingRequest.requestNumber} - ৳ {(Number(actingRequest.amount) || 0).toLocaleString()}</div>
               <div className="text-slate-400 mt-0.5">{actingRequest.branchName} • {actingRequest.category}</div>
             </div>
 
@@ -1349,7 +1349,7 @@ export const FundRequestsView: React.FC<FundRequestsViewProps> = ({
               </h3>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              আপনি কি নিশ্চিত যে <strong className="text-white">{deleteConfirmReq.requestNumber}</strong> (৳{deleteConfirmReq.amount.toLocaleString()} - {deleteConfirmReq.branchName}) রিকুইজিশনটি সিস্টেম থেকে মুছে ফেলতে চান?
+              আপনি কি নিশ্চিত যে <strong className="text-white">{deleteConfirmReq.requestNumber}</strong> (৳{(Number(deleteConfirmReq.amount) || 0).toLocaleString()} - {deleteConfirmReq.branchName}) রিকুইজিশনটি সিস্টেম থেকে মুছে ফেলতে চান?
             </p>
             <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
               <button

@@ -52,16 +52,52 @@ function setStored<T>(key: string, value: T): void {
 }
 
 export function useLeedoStore() {
-  const [users, setUsers] = useState<User[]>(() => getStored(STORAGE_KEYS.USERS, INITIAL_USERS));
+  const [users, setUsers] = useState<User[]>(() => {
+    const stored = getStored<User[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
+    if (!stored || !stored.some(u => u.branchId === 'br-head-office' || (u.assignedBranchIds && u.assignedBranchIds.length > 1))) {
+      return INITIAL_USERS;
+    }
+    return stored;
+  });
   // Default to Habibur Rahman (Accountant, 1004) or Masud (1023)
   const [currentUserId, setCurrentUserId] = useState<string>(() => getStored(STORAGE_KEYS.CURRENT_USER_ID, 'usr-1004'));
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => getStored(STORAGE_KEYS.IS_LOGGED_IN, false));
   const [language, setLanguageState] = useState<Language>(() => getStored(STORAGE_KEYS.LANGUAGE, 'bn'));
   const [customLogoUrl, setCustomLogoUrl] = useState<string>(() => getStored(STORAGE_KEYS.CUSTOM_LOGO, ''));
-  const [branches, setBranches] = useState<Branch[]>(() => getStored(STORAGE_KEYS.BRANCHES, INITIAL_BRANCHES));
-  const [subBranches, setSubBranches] = useState<SubBranch[]>(() => getStored(STORAGE_KEYS.SUB_BRANCHES, INITIAL_SUB_BRANCHES));
+  const [branches, setBranches] = useState<Branch[]>(() => {
+    const stored = getStored<Branch[]>(STORAGE_KEYS.BRANCHES, INITIAL_BRANCHES);
+    const officialIds = new Set(INITIAL_BRANCHES.map(b => b.id));
+    const isStrict12 = stored && 
+      stored.length === INITIAL_BRANCHES.length && 
+      stored.every(b => officialIds.has(b.id));
+
+    if (!isStrict12) {
+      setStored(STORAGE_KEYS.BRANCHES, INITIAL_BRANCHES);
+      return INITIAL_BRANCHES;
+    }
+    return stored;
+  });
+  const [subBranches, setSubBranches] = useState<SubBranch[]>(() => {
+    const stored = getStored<SubBranch[]>(STORAGE_KEYS.SUB_BRANCHES, INITIAL_SUB_BRANCHES);
+    const officialIds = new Set(INITIAL_BRANCHES.map(b => b.id));
+    const hasOfficialArchitecture = stored && 
+      stored.length >= 10 && 
+      stored.every(s => officialIds.has(s.branchId));
+
+    if (!hasOfficialArchitecture) {
+      setStored(STORAGE_KEYS.SUB_BRANCHES, INITIAL_SUB_BRANCHES);
+      return INITIAL_SUB_BRANCHES;
+    }
+    return stored;
+  });
   const [donors, setDonors] = useState<Donor[]>(() => getStored(STORAGE_KEYS.DONORS, INITIAL_DONORS));
-  const [projects, setProjects] = useState<Project[]>(() => getStored(STORAGE_KEYS.PROJECTS, INITIAL_PROJECTS));
+  const [projects, setProjects] = useState<Project[]>(() => {
+    const stored = getStored<Project[]>(STORAGE_KEYS.PROJECTS, INITIAL_PROJECTS);
+    if (!stored || !stored.some(p => p.targetBranchIds.some(bid => bid.includes('-sus') || bid.includes('-tssb')))) {
+      return INITIAL_PROJECTS;
+    }
+    return stored;
+  });
   const [vouchers, setVouchers] = useState<TransactionVoucher[]>(() => getStored(STORAGE_KEYS.VOUCHERS, INITIAL_VOUCHERS));
   const [fundRequests, setFundRequests] = useState<FundRequest[]>(() => getStored(STORAGE_KEYS.FUND_REQUESTS, INITIAL_FUND_REQUESTS));
   const [notifications, setNotifications] = useState<AppNotification[]>(() => getStored(STORAGE_KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS));
@@ -87,37 +123,49 @@ export function useLeedoStore() {
 
     // 2. Subscribe to Users
     const unsubUsers = subscribeToCollection<User>('users', (cloudUsers) => {
-      if (cloudUsers && cloudUsers.length > 0) {
+      const hasNewArchitecture = cloudUsers && cloudUsers.some(u => u.branchId === 'br-head-office' || (u.assignedBranchIds && u.assignedBranchIds.length > 1));
+      if (hasNewArchitecture && cloudUsers.length >= 10) {
         setUsers(cloudUsers);
       } else {
         // Seed users to cloud once
+        setUsers(INITIAL_USERS);
         INITIAL_USERS.forEach(u => syncDocumentToFirestore('users', u.id, u));
       }
     });
 
-    // 3. Subscribe to Branches
+    // 3. Subscribe to Branches (Official 12 Branches Architecture)
     const unsubBranches = subscribeToCollection<Branch>('branches', (cloudBranches) => {
-      if (cloudBranches && cloudBranches.length > 0) {
+      const officialIds = new Set(INITIAL_BRANCHES.map(b => b.id));
+      const isStrict12 = cloudBranches && 
+        cloudBranches.length === INITIAL_BRANCHES.length && 
+        cloudBranches.every(b => officialIds.has(b.id));
+
+      if (isStrict12) {
         setBranches(cloudBranches);
       } else {
+        setBranches(INITIAL_BRANCHES);
         INITIAL_BRANCHES.forEach(b => syncDocumentToFirestore('branches', b.id, b));
       }
     });
 
     // 4. Subscribe to Sub-Branches
     const unsubSubBranches = subscribeToCollection<SubBranch>('subBranches', (cloudSubs) => {
-      if (cloudSubs && cloudSubs.length > 0) {
+      const hasNewArchitecture = cloudSubs && cloudSubs.some(s => s.branchId === 'br-head-office' || s.branchId === 'br-kamalapur-tssb');
+      if (hasNewArchitecture && cloudSubs.length >= 10) {
         setSubBranches(cloudSubs);
       } else {
+        setSubBranches(INITIAL_SUB_BRANCHES);
         INITIAL_SUB_BRANCHES.forEach(s => syncDocumentToFirestore('subBranches', s.id, s));
       }
     });
 
     // 5. Subscribe to Projects
     const unsubProjects = subscribeToCollection<Project>('projects', (cloudProjects) => {
-      if (cloudProjects && cloudProjects.length > 0) {
+      const hasNewArchitecture = cloudProjects && cloudProjects.some(p => p.targetBranchIds.some(bid => bid.includes('-sus') || bid.includes('-tssb')));
+      if (hasNewArchitecture && cloudProjects.length >= 5) {
         setProjects(cloudProjects);
       } else {
+        setProjects(INITIAL_PROJECTS);
         INITIAL_PROJECTS.forEach(p => syncDocumentToFirestore('projects', p.id, p));
       }
     });
@@ -188,45 +236,55 @@ export function useLeedoStore() {
   useEffect(() => { setStored(STORAGE_KEYS.AUDIT_LOGS, auditLogs); }, [auditLogs]);
   useEffect(() => { setStored(STORAGE_KEYS.PETTY_CASH, pettyCashLogs); }, [pettyCashLogs]);
 
-  const currentUser = users.find(u => u.id === currentUserId) || users[0];
+  const currentUser = users.find(u => u.id === currentUserId) || users[0] || INITIAL_USERS[0];
 
   // Role flags
   const isSuperAdmin = currentUser.role === 'SUPER_ADMIN' || currentUser.staffId === '1002';
   const isManagement = currentUser.role === 'MANAGEMENT' || currentUser.role === 'SUPER_ADMIN' || isSuperAdmin;
   const isCentralAccounts = currentUser.role === 'CENTRAL_ACCOUNTS'; // Habib 1004, Sazzad 1079
   const isBranchRep = currentUser.role === 'BRANCH_REP'; // Masud 1023, Sajan 1028, etc.
-  const userBranchId = currentUser.branchId;
 
-  // Strict RBAC filtering:
-  // Branch Rep ONLY sees their own branch data:
+  // Multi-branch resolution: a staff member can have 1, 2, or 3 branches assigned!
+  const userAssignedBranchIds: string[] = isBranchRep
+    ? (currentUser.assignedBranchIds && currentUser.assignedBranchIds.length > 0
+        ? currentUser.assignedBranchIds
+        : (currentUser.branchId ? [currentUser.branchId] : []))
+    : [];
+
+  const userBranchId = currentUser.branchId || userAssignedBranchIds[0];
+
+  // Strict RBAC filtering with Multi-Branch Support:
+  // Branch Rep sees data for ALL branches they are assigned to:
   const visibleVouchers = isBranchRep
-    ? vouchers.filter(v => v.branchId === userBranchId)
+    ? vouchers.filter(v => userAssignedBranchIds.includes(v.branchId))
     : vouchers;
 
-  // Expenses only for branch rep (koros)
-  const branchExpensesOnly = vouchers.filter(v => v.branchId === userBranchId && v.type === 'EXPENSE_PROCUREMENT');
+  // Expenses only for branch rep (koros) across their assigned branches
+  const branchExpensesOnly = vouchers.filter(v => 
+    userAssignedBranchIds.includes(v.branchId) && v.type === 'EXPENSE_PROCUREMENT'
+  );
 
   const visibleBranches = isBranchRep
-    ? branches.filter(b => b.id === userBranchId)
+    ? branches.filter(b => userAssignedBranchIds.includes(b.id))
     : branches;
 
   const visibleSubBranches = isBranchRep
-    ? subBranches.filter(s => s.branchId === userBranchId)
+    ? subBranches.filter(s => userAssignedBranchIds.includes(s.branchId))
     : subBranches;
 
   const visibleProjects = isBranchRep
-    ? projects.filter(p => p.targetBranchIds.includes(userBranchId || ''))
+    ? projects.filter(p => p.targetBranchIds.some(bid => userAssignedBranchIds.includes(bid)))
     : projects;
 
   const visibleFundRequests = isBranchRep
-    ? fundRequests.filter(f => f.branchId === userBranchId)
+    ? fundRequests.filter(f => userAssignedBranchIds.includes(f.branchId))
     : fundRequests;
 
-  // User-relevant notifications
+  // User-relevant notifications across all assigned branches
   const userNotifications = notifications.filter(n => {
     if (n.targetRole === 'ALL') return true;
     if (isBranchRep) {
-      return n.targetRole === 'BRANCH_REP' && (!n.targetBranchId || n.targetBranchId === userBranchId);
+      return n.targetRole === 'BRANCH_REP' && (!n.targetBranchId || userAssignedBranchIds.includes(n.targetBranchId));
     }
     if (isCentralAccounts) {
       return n.targetRole === 'CENTRAL_ACCOUNTS';
@@ -316,14 +374,8 @@ export function useLeedoStore() {
     }
 
     // Check if user must change password:
-    // Either marked as mustChangePassword OR their password is currently their Staff ID
-    const requiresChange = userFound.mustChangePassword === true || 
-      passwordAttempt === userFound.staffId || 
-      storedPass === userFound.staffId;
-
-    if (requiresChange) {
-      setUsers(prev => prev.map(u => u.id === userFound.id ? { ...u, mustChangePassword: true } : u));
-    }
+    // Only if explicitly required (e.g. HR reset their password)
+    const requiresChange = userFound.mustChangePassword === true;
 
     setCurrentUserId(userFound.id);
     setIsLoggedIn(true);
@@ -377,10 +429,26 @@ export function useLeedoStore() {
 
     // Default password is their Staff ID (EID) and mustChangePassword = true
     const defaultPass = staffData.password || cleanStaffId;
+
+    const branchIdsList = staffData.assignedBranchIds && staffData.assignedBranchIds.length > 0
+      ? staffData.assignedBranchIds
+      : (staffData.branchId ? [staffData.branchId] : ['br-head-office']);
+
+    const branchNamesList = staffData.assignedBranchNames && staffData.assignedBranchNames.length > 0
+      ? staffData.assignedBranchNames
+      : branchIdsList.map(bid => branches.find(b => b.id === bid)?.name || bid);
+
+    const primaryBranchId = staffData.branchId || branchIdsList[0];
+    const primaryBranchName = branches.find(b => b.id === primaryBranchId)?.name || branchNamesList[0];
+
     const newStaff: User = {
       ...staffData,
       id: `usr-${cleanStaffId}`,
       staffId: cleanStaffId,
+      branchId: primaryBranchId,
+      branchName: primaryBranchName,
+      assignedBranchIds: branchIdsList,
+      assignedBranchNames: branchNamesList,
       status: 'ACTIVE',
       joinedDate: staffData.joinedDate || new Date().toISOString().substring(0, 10),
       password: defaultPass,
@@ -488,9 +556,28 @@ export function useLeedoStore() {
     const target = users.find(u => u.staffId === staffId);
     if (!target) return { success: false, message: 'Staff member not found.' };
 
+    let updatedAssignedIds = data.assignedBranchIds !== undefined 
+      ? data.assignedBranchIds 
+      : target.assignedBranchIds;
+
+    if (data.branchId && (!updatedAssignedIds || updatedAssignedIds.length === 0)) {
+      updatedAssignedIds = [data.branchId];
+    }
+
+    const updatedAssignedNames = updatedAssignedIds
+      ? updatedAssignedIds.map(bid => branches.find(b => b.id === bid)?.name || bid)
+      : target.assignedBranchNames;
+
+    const primaryBranchId = data.branchId || (updatedAssignedIds && updatedAssignedIds.length > 0 ? updatedAssignedIds[0] : target.branchId);
+    const primaryBranchName = branches.find(b => b.id === primaryBranchId)?.name || target.branchName;
+
     const updated: User = {
       ...target,
       ...data,
+      branchId: primaryBranchId,
+      branchName: primaryBranchName,
+      assignedBranchIds: updatedAssignedIds,
+      assignedBranchNames: updatedAssignedNames,
     };
 
     setUsers(prev => prev.map(u => u.staffId === staffId ? updated : u));
@@ -506,13 +593,15 @@ export function useLeedoStore() {
     return { success: true, message: `Staff ${target.name} (ID: ${target.staffId}) updated successfully.` };
   };
 
-  // Super Admin / HR: Transfer Staff (শাখা বদলি ও অ্যাক্সেস পরিবর্তন)
+  // Super Admin / HR: Transfer Staff (শাখা বদলি, এক্সেস পরিবর্তন ও বহু-শাখা দায়িত্ব প্রদান)
   const transferStaff = (
     staffId: string, 
     targetBranchId: string, 
     newRole?: UserRole, 
     newDesignation?: string, 
-    newAssignedUnits?: string[]
+    newAssignedUnits?: string[],
+    newAssignedBranchIds?: string[],
+    newAssignedBranchNames?: string[]
   ): { success: boolean; message: string } => {
     if (!isSuperAdmin && !isManagement) {
       return { success: false, message: 'Only Super Admin / HR (Murshida Akhter Kanta) can transfer staff.' };
@@ -522,13 +611,23 @@ export function useLeedoStore() {
     if (!target) return { success: false, message: 'Staff member not found.' };
 
     const targetBranch = branches.find(b => b.id === targetBranchId);
-    const oldBranchName = target.branchName || 'Head Office';
-    const newBranchName = targetBranch ? targetBranch.name : 'Head Office';
+    const oldBranchName = target.branchName || 'Head office';
+    const newBranchName = targetBranch ? targetBranch.name : 'Head office';
+
+    const branchIdsList = newAssignedBranchIds && newAssignedBranchIds.length > 0
+      ? newAssignedBranchIds
+      : [targetBranchId];
+
+    const branchNamesList = newAssignedBranchNames && newAssignedBranchNames.length > 0
+      ? newAssignedBranchNames
+      : branchIdsList.map(bid => branches.find(b => b.id === bid)?.name || bid);
 
     const updated: User = {
       ...target,
       branchId: targetBranchId,
       branchName: newBranchName,
+      assignedBranchIds: branchIdsList,
+      assignedBranchNames: branchNamesList,
       role: newRole || target.role,
       designation: newDesignation || target.designation,
       assignedUnits: newAssignedUnits || target.assignedUnits,
@@ -541,12 +640,12 @@ export function useLeedoStore() {
       'UPDATE',
       'USER',
       `STAFF-${target.staffId}`,
-      `Staff ${target.name} transferred from ${oldBranchName} to ${newBranchName}. Role: ${updated.role}, Designation: ${updated.designation}.`
+      `Staff ${target.name} transferred from ${oldBranchName} to ${newBranchName} (Branches: ${branchNamesList.join(', ')}). Role: ${updated.role}, Designation: ${updated.designation}.`
     );
 
     return { 
       success: true, 
-      message: `${target.name}-কে সফলভাবে ${newBranchName}-এ বদলি ও পদবি হালনাগাদ করা হয়েছে।` 
+      message: `${target.name}-কে সফলভাবে ${newBranchName} (মোট দায়িত্বপ্রাপ্ত শাখা: ${branchIdsList.length})-এ বদলি ও পদবি হালনাগাদ করা হয়েছে।` 
     };
   };
 
@@ -1692,6 +1791,13 @@ export function useLeedoStore() {
     setPettyCashLogs(INITIAL_PETTY_CASH_RECORDS);
   };
 
+  const resetToOfficialBranches = (): { success: boolean; message: string } => {
+    setBranches(INITIAL_BRANCHES);
+    setStored(STORAGE_KEYS.BRANCHES, INITIAL_BRANCHES);
+    INITIAL_BRANCHES.forEach(b => syncDocumentToFirestore('branches', b.id, b));
+    return { success: true, message: '১২টি অফিসিয়াল শাখা সফলভাবে নিশ্চিত ও হালনাগাদ করা হয়েছে।' };
+  };
+
   return {
     users,
     currentUser,
@@ -1756,6 +1862,7 @@ export function useLeedoStore() {
     closeProject,
     addBranch,
     addPettyCashLog,
+    resetToOfficialBranches,
     resetAllData,
   };
 }

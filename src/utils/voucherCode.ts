@@ -6,11 +6,23 @@
 import { VoucherType } from '../types';
 
 export const BRANCH_CODE_MAP: Record<string, string> = {
+  'br-airport-sus': 'AIR',
+  'br-mirpur-sus': 'MIR',
+  'br-tejgaon-sus': 'TEJ',
+  'br-kamalapur-sus': 'KML',
+  'br-kamalapur-tssb': 'KTSSB',
+  'br-kadamtali-tssb': 'KDT',
+  'br-sadarghat-sus': 'SAD',
+  'br-shambazar-sus': 'SHM',
+  'br-vocational-trade': 'VOC',
+  'br-inclusive-school': 'INC',
+  'br-peace-home': 'PCH',
+  'br-head-office': 'HO',
+  // Backwards compatibility mappings
   'br-kamalapur': 'KML',
-  'br-kadamtali': 'KDM',
+  'br-kadamtali': 'KDT',
   'br-airport': 'AIR',
   'br-tejgaon': 'TEJ',
-  'br-rayerbazar': 'RYR',
   'br-peacehome': 'PCH',
   'br-inclusiveschool': 'INC',
   'br-mirpur': 'MIR',

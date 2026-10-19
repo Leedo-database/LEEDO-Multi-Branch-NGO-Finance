@@ -97,7 +97,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <TrendingUp className="w-4 h-4 text-emerald-400" />
           </div>
           <div className="mt-2 text-2xl font-bold font-mono text-emerald-400 tabular-nums">
-            ৳ {totalIncome.toLocaleString()}
+            ৳ {(Number(totalIncome) || 0).toLocaleString()}
           </div>
           <div className="mt-2 text-xs text-slate-500 flex items-center gap-1.5">
             <span>Grants & Donors</span>
@@ -113,7 +113,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <TrendingDown className="w-4 h-4 text-red-400" />
           </div>
           <div className="mt-2 text-2xl font-bold font-mono text-white tabular-nums">
-            ৳ {totalExpense.toLocaleString()}
+            ৳ {(Number(totalExpense) || 0).toLocaleString()}
           </div>
           <div className="mt-2 text-xs text-slate-500 flex items-center gap-1.5">
             <span>Budget Burn: {Math.round((totalSpentBudget / (totalAllocatedBudget || 1)) * 100)}%</span>
@@ -129,7 +129,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <Building2 className="w-4 h-4 text-sky-400" />
           </div>
           <div className="mt-2 text-2xl font-bold font-mono text-sky-400 tabular-nums">
-            ৳ {totalBankBalance.toLocaleString()}
+            ৳ {(Number(totalBankBalance) || 0).toLocaleString()}
           </div>
           <div className="mt-2 text-xs text-slate-500 flex items-center gap-1.5">
             <span>8 Sub-Branches</span>
@@ -145,7 +145,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <ArrowUpRight className="w-4 h-4 text-amber-400" />
           </div>
           <div className="mt-2 text-2xl font-bold font-mono text-amber-400 tabular-nums">
-            ৳ {totalPettyCashFloat.toLocaleString()}
+            ৳ {(Number(totalPettyCashFloat) || 0).toLocaleString()}
           </div>
           <div className="mt-2 text-xs text-slate-500 flex items-center gap-1.5">
             <span>Daily Drawer Floats</span>
@@ -233,7 +233,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
                     <div className="text-right sm:text-right">
                       <div className="text-xs font-mono font-bold text-slate-200">
-                        ৳ {project.spentBudget.toLocaleString()} / ৳ {project.totalBudget.toLocaleString()}
+                        ৳ {(Number(project.spentBudget) || 0).toLocaleString()} / ৳ {(Number(project.totalBudget) || 0).toLocaleString()}
                       </div>
                       <div className="text-[11px] text-slate-400">
                         <span>{percentage}% utilized</span>
@@ -258,7 +258,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <div className="mt-2.5 flex flex-wrap gap-2 text-[11px] text-slate-400">
                     {project.branchAllocations.map(ba => (
                       <span key={ba.branchId} className="bg-slate-900 border border-slate-800 px-2 py-0.5 rounded text-slate-300">
-                        {ba.branchName.replace(' Branch', '')}: <span className="font-mono text-emerald-400">৳{ba.spentAmount.toLocaleString()}</span> / ৳{ba.allocatedAmount.toLocaleString()}
+                        {ba.branchName.replace(' Branch', '')}: <span className="font-mono text-emerald-400">৳{(Number(ba.spentAmount) || 0).toLocaleString()}</span> / ৳{(Number(ba.allocatedAmount) || 0).toLocaleString()}
                       </span>
                     ))}
                   </div>
@@ -378,16 +378,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     )}
                   </td>
                   <td className="py-3 px-3 text-right font-mono font-medium text-amber-400">
-                    ৳ {branch.currentCashFloat.toLocaleString()}
+                    ৳ {(Number(branch.currentCashFloat) || 0).toLocaleString()}
                   </td>
                   <td className="py-3 px-3 text-right font-mono font-medium text-sky-400">
-                    ৳ {branch.bankBalance.toLocaleString()}
+                    ৳ {(Number(branch.bankBalance) || 0).toLocaleString()}
                   </td>
                   <td className="py-3 px-3 text-right font-mono text-slate-300">
-                    ৳ {branch.totalAllocated.toLocaleString()}
+                    ৳ {(Number(branch.totalAllocated) || 0).toLocaleString()}
                   </td>
                   <td className="py-3 px-3 text-right font-mono font-bold text-emerald-400">
-                    ৳ {branch.totalSpent.toLocaleString()}
+                    ৳ {(Number(branch.totalSpent) || 0).toLocaleString()}
                   </td>
                   <td className="py-3 px-3 text-center">
                     <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400">

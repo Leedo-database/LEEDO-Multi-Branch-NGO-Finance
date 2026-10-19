@@ -287,7 +287,7 @@ export const VoucherManagementView: React.FC<VoucherManagementViewProps> = ({
                       {/* Advance Adjustment Badge */}
                       {v.advanceAdjustment && (
                         <div className="text-[10px] text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/50 flex items-center gap-1 mt-0.5">
-                          <span>⚡ অগ্রিম সমন্বয়: Adv ৳{v.advanceAdjustment.advanceAmount.toLocaleString()} → Spent ৳{v.amount.toLocaleString()}</span>
+                          <span>⚡ অগ্রিম সমন্বয়: Adv ৳{(v.advanceAdjustment?.advanceAmount ?? 0).toLocaleString()} → Spent ৳{(v.amount ?? 0).toLocaleString()}</span>
                         </div>
                       )}
                       <div className="text-[11px] text-slate-400 mt-0.5">
@@ -319,7 +319,7 @@ export const VoucherManagementView: React.FC<VoucherManagementViewProps> = ({
                     {/* Amount */}
                     <td className="py-3 px-3 text-right">
                       <div className="font-mono font-bold text-sm text-white tabular-nums">
-                        ৳ {v.amount.toLocaleString()}
+                        ৳ {(Number(v.amount) || 0).toLocaleString()}
                       </div>
                       <div className="text-[10px] text-slate-500">
                         By {v.createdBy.userName.split(' ')[0]} (ID: {v.createdBy.staffId})
@@ -556,7 +556,7 @@ export const VoucherManagementView: React.FC<VoucherManagementViewProps> = ({
               <h3 className="text-base font-bold text-white">ভাউচার ডিলিট নিশ্চিতকরণ</h3>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              আপনি কি নিশ্চিত যে ভাউচার <strong className="text-white font-mono">{deletingVoucher.voucherNumber}</strong> (৳{deletingVoucher.amount.toLocaleString()}) ডিলিট করতে চান?
+              আপনি কি নিশ্চিত যে ভাউচার <strong className="text-white font-mono">{deletingVoucher.voucherNumber}</strong> (৳{(Number(deletingVoucher?.amount) || 0).toLocaleString()}) ডিলিট করতে চান?
             </p>
             <p className="text-[11px] text-amber-300 bg-amber-950/50 p-2.5 rounded-lg border border-amber-900/50">
               ⚠️ এটি ডিলিট করলে লেজার হিসাব ও ক্যাশ ফ্লোট থেকে এই টাকার প্রভাব স্বয়ংক্রিয়ভাবে বাদ হয়ে যাবে এবং ক্লাউড থেকে মুছে যাবে।

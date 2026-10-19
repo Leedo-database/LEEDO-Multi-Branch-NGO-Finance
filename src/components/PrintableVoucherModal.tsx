@@ -227,7 +227,7 @@ export const PrintableVoucherModal: React.FC<PrintableVoucherModalProps> = ({
                     <div className="bg-white p-2.5 rounded border border-amber-200 shadow-sm">
                       <span className="text-[11px] text-slate-500 font-medium block">প্রকৃত খরচ (Actual Spent)</span>
                       <strong className="text-sm font-mono font-black text-emerald-800">
-                        ৳ {voucher.amount.toLocaleString()}
+                        ৳ {(Number(voucher.amount) || 0).toLocaleString()}
                       </strong>
                     </div>
 
@@ -240,7 +240,7 @@ export const PrintableVoucherModal: React.FC<PrintableVoucherModalProps> = ({
                       <strong className={`text-sm font-mono font-black ${
                         voucher.advanceAdjustment?.adjustmentType === 'SURPLUS_RETURNED' ? 'text-emerald-700' : 'text-rose-700'
                       }`}>
-                        ৳ {(voucher.advanceAdjustment?.balanceAmount ?? 0).toLocaleString()}
+                        ৳ {(Number(voucher.advanceAdjustment?.balanceAmount) || 0).toLocaleString()}
                       </strong>
                     </div>
                   </div>
@@ -252,7 +252,7 @@ export const PrintableVoucherModal: React.FC<PrintableVoucherModalProps> = ({
                     </p>
                     <p>
                       {voucher.advanceAdjustment?.settlementNotes || 
-                        `গৃহীত অগ্রিমের বিপরীতে মোট ৳${voucher.amount.toLocaleString()} টাকার অনুমোদিত রসিদ ও ভাউচার জমা দেওয়া হয়েছে এবং চূড়ান্ত সমন্বয় লিপিবদ্ধ করা হলো।`}
+                        `গৃহীত অগ্রিমের বিপরীতে মোট ৳${(Number(voucher.amount) || 0).toLocaleString()} টাকার অনুমোদিত রসিদ ও ভাউচার জমা দেওয়া হয়েছে এবং চূড়ান্ত সমন্বয় লিপিবদ্ধ করা হলো।`}
                     </p>
                   </div>
                 </div>
@@ -332,8 +332,8 @@ export const PrintableVoucherModal: React.FC<PrintableVoucherModalProps> = ({
                           <td className="p-2 border-r border-slate-200 font-medium text-slate-800">{item.description}</td>
                           <td className="p-2 border-r border-slate-200 text-right font-mono">{item.quantity}</td>
                           <td className="p-2 border-r border-slate-200 text-slate-600">{item.unit}</td>
-                          <td className="p-2 border-r border-slate-200 text-right font-mono">৳ {item.unitPrice.toLocaleString()}</td>
-                          <td className="p-2 text-right font-mono font-bold text-slate-900">৳ {item.totalPrice.toLocaleString()}</td>
+                          <td className="p-2 border-r border-slate-200 text-right font-mono">৳ {(Number(item.unitPrice) || 0).toLocaleString()}</td>
+                          <td className="p-2 text-right font-mono font-bold text-slate-900">৳ {(Number(item.totalPrice) || 0).toLocaleString()}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -346,12 +346,12 @@ export const PrintableVoucherModal: React.FC<PrintableVoucherModalProps> = ({
                 <div>
                   <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">Total Verified Amount</span>
                   <p className="text-xs text-red-300 italic mt-0.5">
-                    Taka in Words: {voucher.amount.toLocaleString()} Bangladeshi Taka Only
+                    Taka in Words: {(Number(voucher.amount) || 0).toLocaleString()} Bangladeshi Taka Only
                   </p>
                 </div>
                 <div className="text-right">
                   <span className="text-2xl font-black font-mono tracking-tight text-red-400">
-                    ৳ {voucher.amount.toLocaleString()}
+                    ৳ {(Number(voucher.amount) || 0).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -445,7 +445,7 @@ export const PrintableVoucherModal: React.FC<PrintableVoucherModalProps> = ({
                 )}
                 {(voucher.type === 'ADVANCE_ADJUSTMENT' || voucher.isAdvanceAdjustment) && (
                   <div className="text-[10px] text-amber-950 pt-1 border-t border-dotted border-slate-300 font-bold">
-                    ADJUSTMENT: Adv ৳{(voucher.advanceAdjustment?.advanceAmount || voucher.amount).toLocaleString()} | Spent ৳{voucher.amount.toLocaleString()} | Bal ৳{(voucher.advanceAdjustment?.balanceAmount || 0).toLocaleString()}
+                    ADJUSTMENT: Adv ৳{(Number(voucher.advanceAdjustment?.advanceAmount || voucher.amount) || 0).toLocaleString()} | Spent ৳{(Number(voucher.amount) || 0).toLocaleString()} | Bal ৳{(Number(voucher.advanceAdjustment?.balanceAmount) || 0).toLocaleString()}
                   </div>
                 )}
               </div>
@@ -470,7 +470,7 @@ export const PrintableVoucherModal: React.FC<PrintableVoucherModalProps> = ({
               <div className="border-b-2 border-slate-900 pb-2 mb-3">
                 <div className="flex justify-between text-sm font-black">
                   <span>TOTAL TAKA:</span>
-                  <span className="text-red-700">৳ {voucher.amount.toLocaleString()}</span>
+                  <span className="text-red-700">৳ {(Number(voucher.amount) || 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-[10px] text-slate-600 mt-1">
                   <span>STATUS:</span>

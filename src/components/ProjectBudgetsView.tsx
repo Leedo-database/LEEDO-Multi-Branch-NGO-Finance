@@ -282,7 +282,7 @@ export const ProjectBudgetsView: React.FC<ProjectBudgetsViewProps> = ({
                 <div className="mt-4 p-3 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2">
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-slate-400">Total Project Ceiling:</span>
-                    <span className="font-mono font-bold text-white text-sm">৳ {project.totalBudget.toLocaleString()}</span>
+                    <span className="font-mono font-bold text-white text-sm">৳ {(Number(project.totalBudget) || 0).toLocaleString()}</span>
                   </div>
                   <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
                     <div
@@ -291,8 +291,8 @@ export const ProjectBudgetsView: React.FC<ProjectBudgetsViewProps> = ({
                     />
                   </div>
                   <div className="flex justify-between text-[11px] font-mono text-slate-400">
-                    <span>Spent: ৳{project.spentBudget.toLocaleString()} ({percentUsed}%)</span>
-                    <span>Remaining: ৳{remainingBudget.toLocaleString()}</span>
+                    <span>Spent: ৳{(Number(project.spentBudget) || 0).toLocaleString()} ({percentUsed}%)</span>
+                    <span>Remaining: ৳{(Number(remainingBudget) || 0).toLocaleString()}</span>
                   </div>
                 </div>
 
@@ -313,9 +313,9 @@ export const ProjectBudgetsView: React.FC<ProjectBudgetsViewProps> = ({
                             </div>
                           </div>
                           <div className="text-right font-mono">
-                            <span className="text-emerald-400 font-semibold">৳{ba.spentAmount.toLocaleString()}</span>
+                            <span className="text-emerald-400 font-semibold">৳{(Number(ba.spentAmount) || 0).toLocaleString()}</span>
                             <span className="text-slate-500 mx-1">/</span>
-                            <span className="text-slate-200">৳{ba.allocatedAmount.toLocaleString()}</span>
+                            <span className="text-slate-200">৳{(Number(ba.allocatedAmount) || 0).toLocaleString()}</span>
                           </div>
                         </div>
                       );
@@ -460,15 +460,15 @@ export const ProjectBudgetsView: React.FC<ProjectBudgetsViewProps> = ({
             <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 text-xs space-y-1">
               <div className="flex justify-between">
                 <span className="text-slate-400">Original Allocated Budget:</span>
-                <span className="font-mono text-white">৳ {closingProject.totalBudget.toLocaleString()}</span>
+                <span className="font-mono text-white">৳ {(Number(closingProject.totalBudget) || 0).toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Total Actually Spent:</span>
-                <span className="font-mono text-emerald-400">৳ {closingProject.spentBudget.toLocaleString()}</span>
+                <span className="font-mono text-emerald-400">৳ {(Number(closingProject.spentBudget) || 0).toLocaleString()}</span>
               </div>
               <div className="flex justify-between font-bold pt-1 border-t border-slate-800">
                 <span className="text-slate-300">Unspent Balance to Return to Donor:</span>
-                <span className="font-mono text-amber-400">৳ {(closingProject.totalBudget - closingProject.spentBudget).toLocaleString()}</span>
+                <span className="font-mono text-amber-400">৳ {(Math.max(0, (closingProject.totalBudget || 0) - (closingProject.spentBudget || 0))).toLocaleString()}</span>
               </div>
             </div>
 
@@ -880,7 +880,7 @@ export const ProjectBudgetsView: React.FC<ProjectBudgetsViewProps> = ({
               আপনি কি নিশ্চিত যে <strong className="text-white">{deleteConfirmProject.name}</strong> ({deleteConfirmProject.code}) প্রকল্পটি মুছে ফেলতে চান? 
               {deleteConfirmProject.spentBudget > 0 && (
                 <span className="block mt-1 text-rose-300">
-                  সতর্কতা: এই প্রকল্পের অধীন ৳{deleteConfirmProject.spentBudget.toLocaleString()} খরচ হিসেবে দেখানো হয়েছে।
+                  সতর্কতা: এই প্রকল্পের অধীন ৳{(Number(deleteConfirmProject.spentBudget) || 0).toLocaleString()} খরচ হিসেবে দেখানো হয়েছে।
                 </span>
               )}
             </p>

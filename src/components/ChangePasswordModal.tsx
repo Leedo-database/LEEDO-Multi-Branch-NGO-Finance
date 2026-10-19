@@ -94,15 +94,14 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
                 </p>
               </div>
             </div>
-            {!isMandatory && (
-              <button 
-                type="button"
-                onClick={onClose} 
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                ✕
-              </button>
-            )}
+            <button 
+              type="button"
+              onClick={onClose} 
+              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+              title={language === 'bn' ? 'পরে পরিবর্তন করুন' : 'Change later'}
+            >
+              ✕
+            </button>
           </div>
 
           {/* Mandatory Warning Banner if triggered right after login or HR reset */}
@@ -165,15 +164,13 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
-              {!isMandatory && (
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-3 py-2 text-slate-400 hover:text-white transition-colors cursor-pointer"
-                >
-                  {language === 'bn' ? 'বাতিল' : 'Cancel'}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-3 py-2 text-slate-400 hover:text-white transition-colors cursor-pointer text-xs"
+              >
+                {language === 'bn' ? 'পরে পরিবর্তন করুন' : 'Later'}
+              </button>
               <button
                 type="submit"
                 className="w-full sm:w-auto px-5 py-2.5 font-bold text-white bg-red-600 hover:bg-red-500 rounded-xl shadow-lg shadow-red-950/60 transition-all cursor-pointer flex items-center justify-center gap-2"
